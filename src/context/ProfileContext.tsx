@@ -7,6 +7,15 @@ import type { Profile } from '../types/database';
 interface ProfileContextValue {
   profile: Profile | null;
   isLoading: boolean;
+  /**
+   * true só quando o utilizador está autenticado, a busca já terminou, e
+   * mesmo assim não existe nenhuma linha em "profiles" para ele — nunca
+   * deveria acontecer num fluxo normal (o registo cria o perfil
+   * automaticamente), mas acontece se a conta foi criada no Supabase Auth
+   * antes do schema estar aplicado, ou diretamente pelo painel do
+   * Supabase sem passar pelo registo da app.
+   */
+  profileMissing: boolean;
   updateProfile: (patch: Partial<Profile>) => Promise<void>;
 }
 
@@ -16,15 +25,24 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isFetching } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      // maybeSingle() em vez de single(): se por algum motivo não existir
+      // nenhuma linha em "profiles" para este utilizador autenticado,
+      // devolve null em vez de rebentar com 406 — o que antes deixava a
+      // app presa num spinner infinito sem nenhuma mensagem de erro.
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
       if (error) throw error;
-      return data as Profile;
+      return (data as Profile | null) ?? null;
     },
     enabled: !!user,
+    // Se o perfil ainda não existir (ex: mesmo instante a seguir ao
+    // registo, antes do trigger do Postgres terminar), tenta mais
+    // algumas vezes antes de assumir que está mesmo em falta.
+    retry: (failureCount, err) => !!err && failureCount < 2,
+    retryDelay: 1000,
   });
 
   const mutation = useMutation({
@@ -42,8 +60,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     await mutation.mutateAsync(patch);
   }
 
+  const profileMissing = !!user && !isLoading && !isFetching && !profile;
+
   return (
-    <ProfileContext.Provider value={{ profile: profile ?? null, isLoading, updateProfile }}>
+    <ProfileContext.Provider value={{ profile: profile ?? null, isLoading, profileMissing, updateProfile }}>
       {children}
     </ProfileContext.Provider>
   );
