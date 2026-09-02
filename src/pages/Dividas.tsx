@@ -8,6 +8,7 @@ import { formatCurrency } from '../lib/currency';
 import { Modal } from '../components/ui/Modal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState, ProgressBar, ErrorBanner } from '../components/ui/Feedback';
+import { Paywall, isLimitReachedMessage } from '../components/ui/Paywall';
 import type { Debt } from '../types/database';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -145,6 +146,7 @@ export default function Dividas() {
 
 function NewDebtForm({ onDone }: { onDone: () => void }) {
   const { create } = useDebtMutations();
+  const { data: debts = [] } = useDebts();
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [creditor, setCreditor] = useState('');
@@ -180,7 +182,7 @@ function NewDebtForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <ErrorBanner message={error} />}
+      {error && (isLimitReachedMessage(error) ? <Paywall resource="debts" current={debts.filter((d) => d.status === 'ativa').length} /> : <ErrorBanner message={error} />)}
       <div>
         <label className="label">Nome da dívida</label>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Empréstimo bancário" />

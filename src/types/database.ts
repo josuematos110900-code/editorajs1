@@ -187,3 +187,23 @@ export interface Subscription {
   created_at: string;
   updated_at: string;
 }
+
+export type BillingEventStatus =
+  | 'succeeded'
+  | 'canceled'
+  | 'failed'
+  | 'refunded'
+  | 'chargeback'
+  | 'ignored'
+  | 'user_not_found';
+
+export interface BillingHistoryEntry {
+  id: string;
+  provider: BillingProvider;
+  event_type: string;
+  status: BillingEventStatus;
+  amount: number | null;
+  currency: CurrencyCode | null;
+  reference: string;
+  created_at: string;
+}

@@ -38,7 +38,7 @@ export function useDebtMutations() {
         p_interest_rate: input.interest_rate,
         p_notes: input.notes,
       });
-      if (error) throw new Error(translateRpcError(error));
+      if (error) throw new Error(translateRpcError(error, 'debts'));
     },
     onSuccess: invalidate,
   });

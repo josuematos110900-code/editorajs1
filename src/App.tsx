@@ -26,6 +26,7 @@ import Recorrentes from './pages/Recorrentes';
 import Relatorios from './pages/Relatorios';
 import Assistente from './pages/Assistente';
 import Configuracoes from './pages/Configuracoes';
+import Assinatura from './pages/Assinatura';
 import Admin from './pages/Admin';
 
 const queryClient = new QueryClient({
@@ -78,6 +79,7 @@ export default function App() {
                     <Route path="/relatorios" element={<Relatorios />} />
                     <Route path="/assistente" element={<Assistente />} />
                     <Route path="/configuracoes" element={<Configuracoes />} />
+                    <Route path="/assinatura" element={<Assinatura />} />
                     <Route element={<AdminRoute />}>
                       <Route path="/admin" element={<Admin />} />
                     </Route>

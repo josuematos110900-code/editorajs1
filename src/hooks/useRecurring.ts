@@ -44,7 +44,7 @@ export function useRecurringMutations() {
         p_category_id: input.category_id,
         p_account_id: input.account_id,
       });
-      if (error) throw new Error(translateRpcError(error));
+      if (error) throw new Error(translateRpcError(error, 'recurring'));
     },
     onSuccess: invalidate,
   });

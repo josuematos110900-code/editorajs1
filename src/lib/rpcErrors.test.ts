@@ -33,4 +33,9 @@ describe('translateRpcError', () => {
     const msg = translateRpcError(new Error(''));
     expect(msg.length).toBeGreaterThan(0);
   });
+
+  it('traduz LIMIT_REACHED com o recurso para a mensagem exata do paywall', () => {
+    const msg = translateRpcError(new Error('LIMIT_REACHED'), 'accounts');
+    expect(msg).toBe('Limite de 2 contas atingido. Faz upgrade para o Premium para teres acesso ilimitado.');
+  });
 });

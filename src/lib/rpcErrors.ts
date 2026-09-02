@@ -1,3 +1,5 @@
+import { PLAN_LIMITS, getResourceLabel, type PlanResource } from './planLimits';
+
 /**
  * As RPCs do Supabase (ver supabase/schema.sql) lançam códigos de erro
  * curtos e sem acentos (ex: "LIMIT_REACHED") para nunca expor detalhes
@@ -17,12 +19,21 @@ const ERROR_MESSAGES: Record<string, string> = {
   DUPLICATE_OPERATION: 'Esta operação já foi registada — evita clicar duas vezes seguidas.',
 };
 
-export function translateRpcError(error: unknown): string {
+/**
+ * Igual a translateRpcError, mas quando o erro é LIMIT_REACHED e sabemos
+ * a que recurso pertence (Fase 8/12), devolve a mensagem exata pedida:
+ * "Limite de 2 contas atingido." em vez do texto genérico.
+ */
+export function translateRpcError(error: unknown, resource?: PlanResource): string {
   const message = error instanceof Error ? error.message : String(error);
   // O Postgres normalmente devolve o código dentro da mensagem de erro,
   // por vezes rodeado de texto adicional — procuramos o código conhecido
   // lá dentro em vez de exigir uma correspondência exata.
   const matchedCode = Object.keys(ERROR_MESSAGES).find((code) => message.includes(code));
+  if (matchedCode === 'LIMIT_REACHED' && resource) {
+    const limit = PLAN_LIMITS.free[resource];
+    return `Limite de ${limit} ${getResourceLabel(resource)} atingido. Faz upgrade para o Premium para teres acesso ilimitado.`;
+  }
   if (matchedCode) return ERROR_MESSAGES[matchedCode];
   return message || 'Ocorreu um erro inesperado. Tenta novamente.';
 }

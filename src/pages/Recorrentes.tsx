@@ -9,6 +9,7 @@ import { formatCurrency } from '../lib/currency';
 import { Modal } from '../components/ui/Modal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState, ErrorBanner } from '../components/ui/Feedback';
+import { Paywall, isLimitReachedMessage } from '../components/ui/Paywall';
 import type { RecurringPayment, RecurrenceFrequency, TransactionType } from '../types/database';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -137,6 +138,7 @@ function NewRecurringForm({ onDone }: { onDone: () => void }) {
   const { create } = useRecurringMutations();
   const { data: categories = [] } = useCategories();
   const { data: accounts = [] } = useAccounts();
+  const { data: payments = [] } = useRecurringPayments();
   const { showToast } = useToast();
 
   const [name, setName] = useState('');
@@ -175,7 +177,7 @@ function NewRecurringForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <ErrorBanner message={error} />}
+      {error && (isLimitReachedMessage(error) ? <Paywall resource="recurring" current={payments.length} /> : <ErrorBanner message={error} />)}
       <div>
         <label className="label">Nome</label>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Internet" />

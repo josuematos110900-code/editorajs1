@@ -38,7 +38,7 @@ export function useBudgetMutations() {
         p_month: input.month,
         p_year: input.year,
       });
-      if (error) throw new Error(translateRpcError(error));
+      if (error) throw new Error(translateRpcError(error, 'budgets'));
     },
     onSuccess: invalidate,
   });

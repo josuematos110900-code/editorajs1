@@ -56,7 +56,7 @@ export function useAccountMutations() {
         p_color: input.color,
         p_icon: input.icon,
       });
-      if (error) throw new Error(translateRpcError(error));
+      if (error) throw new Error(translateRpcError(error, 'accounts'));
     },
     onSuccess: invalidate,
   });

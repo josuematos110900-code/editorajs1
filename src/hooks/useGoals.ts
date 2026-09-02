@@ -52,7 +52,7 @@ export function useGoalMutations() {
         p_color: input.color,
         p_icon: input.icon,
       });
-      if (error) throw new Error(translateRpcError(error));
+      if (error) throw new Error(translateRpcError(error, 'goals'));
     },
     onSuccess: invalidate,
   });

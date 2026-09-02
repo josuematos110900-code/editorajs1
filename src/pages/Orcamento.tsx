@@ -54,8 +54,11 @@ export default function Orcamento() {
     try {
       await upsert.mutateAsync({ category_id: categoryId, amount, month, year });
       showToast('Orçamento guardado.');
-    } catch {
-      showToast('Não foi possível guardar o orçamento.', 'error');
+    } catch (err) {
+      // Fase 12: nunca "Erro desconhecido" — mostra a mensagem já
+      // traduzida (rpcErrors.ts), incluindo o limite exato do Free
+      // quando for esse o caso (Fase 8).
+      showToast(err instanceof Error ? err.message : 'Não foi possível guardar o orçamento.', 'error');
     } finally {
       setEditingCategoryId(null);
     }

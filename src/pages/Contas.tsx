@@ -8,6 +8,7 @@ import { formatCurrency } from '../lib/currency';
 import { Modal } from '../components/ui/Modal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState, ErrorBanner } from '../components/ui/Feedback';
+import { Paywall, isLimitReachedMessage } from '../components/ui/Paywall';
 import type { Account, AccountType } from '../types/database';
 
 const ACCOUNT_ICONS: Record<AccountType, typeof Wallet> = {
@@ -143,6 +144,7 @@ const ACCOUNT_COLORS = ['#17A48C', '#3B82F6', '#D4A017', '#8B5CF6', '#E85D5D', '
 
 function NewAccountForm({ onDone }: { onDone: () => void }) {
   const { create } = useAccountMutations();
+  const { data: accounts = [] } = useAccounts();
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('banco');
@@ -172,7 +174,7 @@ function NewAccountForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <ErrorBanner message={error} />}
+      {error && (isLimitReachedMessage(error) ? <Paywall resource="accounts" current={accounts.length} /> : <ErrorBanner message={error} />)}
       <div>
         <label className="label">Nome</label>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Conta salário" />

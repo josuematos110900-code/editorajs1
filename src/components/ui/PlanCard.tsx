@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Crown, Check, ExternalLink, Clock } from 'lucide-react';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useAccounts } from '../../hooks/useAccounts';
@@ -10,14 +11,9 @@ import { ProgressBar } from '../ui/Feedback';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../context/ProfileContext';
-import { getUpgradeCheckoutLink } from '../../lib/checkout';
-import { formatCurrency } from '../../lib/currency';
+import { getUpgradeCheckoutLink, CHECKOUT_UNAVAILABLE_MESSAGE } from '../../lib/checkout';
+import { getPriceLabel, getCountryFromCurrency } from '../../lib/plans';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
-
-const PREMIUM_PRICE_LABEL: Record<string, string> = {
-  BRL: `${formatCurrency(14.9, 'BRL')}/mês`,
-  AOA: `${formatCurrency(3000, 'AOA')}/mês`,
-};
 
 export function PlanCard() {
   const { user } = useAuth();
@@ -36,7 +32,7 @@ export function PlanCard() {
   const isTrial = subscription?.status === 'trialing';
   const limits = PLAN_LIMITS[plan];
   const currency = profile?.currency ?? 'AOA';
-  const priceLabel = PREMIUM_PRICE_LABEL[currency] ?? PREMIUM_PRICE_LABEL.BRL;
+  const priceLabel = getPriceLabel(currency);
 
   const trialDaysLeft = isTrial && subscription?.current_period_end
     ? Math.max(0, differenceInCalendarDays(parseISO(subscription.current_period_end), today))
@@ -61,7 +57,8 @@ export function PlanCard() {
       fullName: profile?.full_name,
     });
     if (!checkout) {
-      showToast('Os pagamentos para a tua moeda ainda não estão disponíveis — em breve.', 'info');
+      const country = getCountryFromCurrency(currency);
+      showToast(CHECKOUT_UNAVAILABLE_MESSAGE[country], 'info');
       return;
     }
     window.open(checkout.url, '_blank', 'noopener,noreferrer');
@@ -85,6 +82,9 @@ export function PlanCard() {
                 ? 'Sem limites de contas, metas, dívidas, orçamentos ou pagamentos recorrentes.'
                 : 'Estás no plano gratuito. Aqui está o teu uso atual de cada limite.'}
           </p>
+          <Link to="/assinatura" className="text-xs text-brand-600 dark:text-brand-400 hover:underline mt-1 inline-block">
+            Ver detalhes da assinatura
+          </Link>
         </div>
         {!isPremium && (
           <span className="badge bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-300 shrink-0">Free</span>

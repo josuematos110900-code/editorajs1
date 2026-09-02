@@ -10,6 +10,7 @@ import {
   Check,
   Moon,
 } from 'lucide-react';
+import { PLAN_CONFIG, TRIAL_DAYS } from '../lib/plans';
 
 const FEATURES = [
   {
@@ -63,8 +64,8 @@ const PLANS = [
   },
   {
     name: 'Premium',
-    price: '14 dias grátis',
-    period: 'depois R$ 14,90/mês, 3.000 Kz/mês, $4,99 ou €4,99/mês',
+    price: `${TRIAL_DAYS} dias grátis`,
+    period: `depois ${PLAN_CONFIG.BR.priceLabel} ou ${PLAN_CONFIG.AO.priceLabel}`,
     description: 'Sem limites, para quem gere as finanças a sério.',
     features: [
       'Contas, metas e dívidas ilimitadas',

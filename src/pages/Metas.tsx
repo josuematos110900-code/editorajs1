@@ -8,6 +8,7 @@ import { formatCurrency } from '../lib/currency';
 import { Modal } from '../components/ui/Modal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState, ErrorBanner } from '../components/ui/Feedback';
+import { Paywall, isLimitReachedMessage } from '../components/ui/Paywall';
 import type { Goal } from '../types/database';
 
 const COLORS = ['#17A48C', '#D4A017', '#3B82F6', '#8B5CF6', '#E85D5D', '#EC4899'];
@@ -153,6 +154,7 @@ export default function Metas() {
 
 function NewGoalForm({ onDone }: { onDone: () => void }) {
   const { create } = useGoalMutations();
+  const { data: goals = [] } = useGoals();
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
@@ -184,7 +186,7 @@ function NewGoalForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <ErrorBanner message={error} />}
+      {error && (isLimitReachedMessage(error) ? <Paywall resource="goals" current={goals.filter((g) => g.status === 'em_progresso').length} /> : <ErrorBanner message={error} />)}
       <div>
         <label className="label">Nome da meta</label>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Comprar computador" />
