@@ -25,8 +25,11 @@ Permite: distribuir automaticamente o salário, definir orçamentos por categori
 
 1. Cria um projeto gratuito em [supabase.com](https://supabase.com).
 2. Vai a **SQL Editor > New query**, cola todo o conteúdo do ficheiro [`supabase/schema.sql`](./supabase/schema.sql) e executa (`Run`).
-   - Isto cria todas as tabelas, ativa o **Row Level Security** em todas elas, cria as políticas de isolamento por utilizador, e cria o trigger que gera automaticamente o perfil + 22 categorias padrão quando um novo utilizador se regista.
-3. Vai a **Project Settings > API** e copia:
+   - Isto cria todas as tabelas, ativa o **Row Level Security** em todas elas, cria as políticas de isolamento por utilizador, e cria o trigger que gera automaticamente o perfil + 22 categorias padrão quando um novo utilizador se regista. `schema.sql` já inclui o conteúdo da migration 002 colado no fim, por isso um projeto novo fica pronto só com este passo.
+3. Corre depois, por esta ordem, as migrations em `supabase/migrations/` que ainda não estejam refletidas em `schema.sql` (num projeto já existente que só tinha 002, basta isto):
+   - [`003_billing_engine.sql`](./supabase/migrations/003_billing_engine.sql) — motor de faturação: idempotência de webhooks, histórico de pagamentos, métricas de billing para o admin.
+   - [`004_race_conditions.sql`](./supabase/migrations/004_race_conditions.sql) — fecha uma condição de corrida nos limites do plano Free sob pedidos concorrentes.
+4. Vai a **Project Settings > API** e copia:
    - `Project URL`
    - `anon public key`
 4. (Opcional, recomendado em produção) Em **Authentication > Providers > Email**, confirma se queres exigir confirmação de email antes do primeiro login.
@@ -43,9 +46,10 @@ cp .env.example .env.local
 ```
 VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
 VITE_SUPABASE_ANON_KEY=SUA_CHAVE_ANONIMA_PUBLICA
+VITE_OKANDA_CHECKOUT_URL=
 ```
 
-**Nunca** coloques a `service_role key` no frontend — apenas a `anon public key`, que é segura para o browser porque o acesso aos dados é controlado pelas políticas de RLS no Supabase.
+**Nunca** coloques a `service_role key`, `CAKTO_WEBHOOK_SECRET` ou `RESEND_API_KEY` no frontend, nem em variáveis `VITE_*` — só a `anon public key` é segura para o browser, porque o acesso aos dados é controlado pelas políticas de RLS no Supabase. Os outros segredos vivem apenas nos **Secrets** das Edge Functions (ver secção 9 e [`CAKTO_SETUP.md`](./CAKTO_SETUP.md)).
 
 ## 3. Executar localmente
 
@@ -132,14 +136,17 @@ A lógica de cálculo financeiro (saldo, orçamento, "quanto posso gastar hoje",
 - PWA instalável (ícone, manifest, service worker com cache)
 - Moeda configurável (Kz — Angola, R$ — Brasil)
 
-## 9. Micro-SaaS: planos, trial e emails
+## 9. Micro-SaaS: planos, trial, billing e admin
 
-O FinançasPro já vem preparado para funcionar como micro-SaaS:
+O FinançasPro é um micro-SaaS comercial completo:
 
-- **Planos Free/Premium** com limites aplicados no servidor (tabela `subscriptions`, ver `src/lib/planLimits.ts`)
-- **Trial de 14 dias grátis** automático em todo o novo registo — uma tarefa `pg_cron` corre todos os dias e reverte para Free quem não fez upgrade
-- **Pagamentos** via Cakto (Brasil, R$ 14,90/mês) e Okanda Pay (Angola, a configurar) — webhook em `supabase/functions/cakto-webhook`
-- **Emails transacionais** via Resend — `supabase/functions/welcome-email` (boas-vindas) e `supabase/functions/trial-reminder-cron` (aviso de fim de trial, disparado diariamente por `pg_cron` + `pg_net`)
+- **Planos Free/Premium** com preço e moeda centralizados em `src/lib/plans.ts` (Angola: 3.000 Kz/30 dias · Brasil: R$ 14,90/mês) — nenhum componente tem preços escritos à mão. Limites do Free (`src/lib/planLimits.ts`) são só para a UI; a aplicação real acontece nas RPCs/RLS do servidor, incluindo sob pedidos concorrentes (`004_race_conditions.sql`).
+- **Trial de 14 dias grátis** automático em todo o novo registo — uma tarefa `pg_cron` corre todos os dias e reverte para Free quem não fez upgrade.
+- **Billing engine** (`003_billing_engine.sql` + `supabase/functions/cakto-webhook`): idempotência real por `(provider, event_id)`, ativação/renovação/cancelamento/reembolso/chargeback/pagamento recusado tratados como estados distintos — ver [`CAKTO_SETUP.md`](./CAKTO_SETUP.md).
+- **Pagamentos**: Cakto no Brasil (assinatura recorrente) e Okanda Pay em Angola (pagamento único de 30 dias, a configurar — ver [`ANGOLA_PAYMENT_SETUP.md`](./ANGOLA_PAYMENT_SETUP.md)).
+- **Página `/assinatura`**: estado do plano, período, valor e histórico de pagamentos do próprio utilizador (`get_my_billing_history`).
+- **Painel `/admin`**: métricas de utilizadores por estado (Free/Trial/Premium/Cancelado/Expirado/Pagamento em falta) e métricas de faturação (pagamentos, renovações, reembolsos, chargebacks — sempre a partir de eventos reais, nunca estimados).
+- **Emails transacionais** via Resend — `supabase/functions/welcome-email` (boas-vindas) e `supabase/functions/trial-reminder-cron` (aviso de fim de trial, disparado diariamente por `pg_cron` + `pg_net`).
 
 Para publicar as Edge Functions num novo projeto Supabase (via [Supabase CLI](https://supabase.com/docs/guides/cli)):
 

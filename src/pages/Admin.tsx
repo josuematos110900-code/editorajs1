@@ -1,5 +1,6 @@
-import { Users, Crown, Clock, TrendingUp, AlertTriangle, UserPlus } from 'lucide-react';
-import { useAdminMetrics, useAdminUsers } from '../hooks/useAdmin';
+import { Users, Crown, Clock, TrendingUp, AlertTriangle, UserPlus, Ban, XCircle, Receipt } from 'lucide-react';
+import { useAdminMetrics, useAdminUsers, useAdminBillingMetrics, useAdminBillingEvents } from '../hooks/useAdmin';
+import { formatCurrency } from '../lib/currency';
 import { StatCard } from '../components/ui/StatCard';
 import { Spinner, EmptyState } from '../components/ui/Feedback';
 import { format, parseISO } from 'date-fns';
@@ -15,6 +16,7 @@ const STATUS_LABEL: Record<string, string> = {
   trialing: 'Trial',
   canceled: 'Cancelado',
   past_due: 'Pagamento em falta',
+  expired: 'Expirado',
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -22,11 +24,14 @@ const STATUS_BADGE: Record<string, string> = {
   trialing: 'bg-gold-500/15 text-gold-600 dark:text-gold-400',
   canceled: 'bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
   past_due: 'bg-coral-500/15 text-coral-600 dark:text-coral-400',
+  expired: 'bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
 };
 
 export default function Admin() {
   const { data: metrics, isLoading: loadingMetrics } = useAdminMetrics();
   const { data: users = [], isLoading: loadingUsers } = useAdminUsers();
+  const { data: billingMetrics } = useAdminBillingMetrics();
+  const { data: billingEvents = [] } = useAdminBillingEvents();
 
   if (loadingMetrics || loadingUsers) {
     return (
@@ -71,6 +76,73 @@ export default function Admin() {
             icon={AlertTriangle}
             iconClass="bg-coral-500/15 text-coral-600 dark:text-coral-400"
           />
+          <StatCard
+            label="Cancelados"
+            value={String(metrics.canceled_users)}
+            icon={Ban}
+            iconClass="bg-ink-100 text-ink-500 dark:bg-ink-800 dark:text-ink-400"
+          />
+          <StatCard
+            label="Expirados"
+            value={String(metrics.expired_users)}
+            icon={XCircle}
+            iconClass="bg-ink-100 text-ink-500 dark:bg-ink-800 dark:text-ink-400"
+          />
+        </div>
+      )}
+
+      {billingMetrics && (
+        <div className="card p-6 space-y-4">
+          <h2 className="font-display font-semibold text-ink-900 dark:text-white flex items-center gap-2">
+            <Receipt size={16} /> Faturação
+          </h2>
+          <p className="text-xs text-ink-400">
+            Valores baseados apenas em eventos reais recebidos do fornecedor de pagamento — nunca estimados.
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatCard label="Pagamentos aprovados" value={String(billingMetrics.payments_count)} icon={Crown} />
+            <StatCard label="Renovações" value={String(billingMetrics.renewals_count)} icon={TrendingUp} />
+            <StatCard label="Reembolsos" value={String(billingMetrics.refunds_count)} icon={Ban} />
+            <StatCard label="Chargebacks" value={String(billingMetrics.chargebacks_count)} icon={AlertTriangle} />
+            <StatCard label="Pagamentos recusados" value={String(billingMetrics.failed_count)} icon={XCircle} />
+            <StatCard
+              label="Receita capturada (BRL)"
+              value={formatCurrency(billingMetrics.revenue_captured, 'BRL')}
+              icon={Receipt}
+              iconClass="bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400"
+            />
+          </div>
+
+          {billingEvents.length > 0 && (
+            <div className="overflow-x-auto pt-2">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-ink-400 border-b border-ink-100 dark:border-ink-800">
+                    <th className="px-3 py-2 font-medium">Data</th>
+                    <th className="px-3 py-2 font-medium">Cliente</th>
+                    <th className="px-3 py-2 font-medium">Evento</th>
+                    <th className="px-3 py-2 font-medium">Estado</th>
+                    <th className="px-3 py-2 font-medium">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {billingEvents.slice(0, 10).map((e) => (
+                    <tr key={e.id} className="border-b border-ink-50 dark:border-ink-800/60 last:border-0">
+                      <td className="px-3 py-2 text-ink-500 dark:text-ink-400 whitespace-nowrap">
+                        {new Date(e.created_at).toLocaleDateString('pt-PT')}
+                      </td>
+                      <td className="px-3 py-2 text-ink-500 dark:text-ink-400">{e.user_email ?? '—'}</td>
+                      <td className="px-3 py-2 text-ink-900 dark:text-white">{e.event_type}</td>
+                      <td className="px-3 py-2 text-ink-500 dark:text-ink-400">{e.status}</td>
+                      <td className="px-3 py-2 text-ink-900 dark:text-white whitespace-nowrap">
+                        {e.amount != null && e.currency ? formatCurrency(e.amount, e.currency as 'AOA' | 'BRL') : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

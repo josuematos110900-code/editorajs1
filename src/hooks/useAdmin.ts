@@ -10,7 +10,30 @@ export interface AdminMetrics {
   trialing_users: number;
   premium_active_users: number;
   past_due_users: number;
+  canceled_users: number;
+  expired_users: number;
   signups_last_30_days: number;
+}
+
+export interface AdminBillingMetrics {
+  payments_count: number;
+  renewals_count: number;
+  refunds_count: number;
+  chargebacks_count: number;
+  failed_count: number;
+  revenue_captured: number;
+  revenue_currency: string;
+}
+
+export interface AdminBillingEventRow {
+  id: string;
+  provider: string;
+  event_type: string;
+  status: string;
+  amount: number | null;
+  currency: string | null;
+  user_email: string | null;
+  created_at: string;
 }
 
 export interface AdminUserRow {
@@ -48,6 +71,34 @@ export function useAdminUsers() {
       const { data, error } = await supabase.rpc('get_admin_users');
       if (error) throw error;
       return (data ?? []) as AdminUserRow[];
+    },
+    enabled: !!user && profile?.role === 'admin',
+  });
+}
+
+export function useAdminBillingMetrics() {
+  const { user } = useAuth();
+  const { profile } = useProfile();
+  return useQuery({
+    queryKey: ['admin_billing_metrics', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_admin_billing_metrics');
+      if (error) throw error;
+      return data as AdminBillingMetrics | null;
+    },
+    enabled: !!user && profile?.role === 'admin',
+  });
+}
+
+export function useAdminBillingEvents() {
+  const { user } = useAuth();
+  const { profile } = useProfile();
+  return useQuery({
+    queryKey: ['admin_billing_events', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_admin_billing_events', { p_limit: 50 });
+      if (error) throw error;
+      return (data ?? []) as AdminBillingEventRow[];
     },
     enabled: !!user && profile?.role === 'admin',
   });

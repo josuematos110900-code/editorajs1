@@ -64,3 +64,61 @@ ser um pedido autenticado normal, como o browser faz):
    ```sql
    update public.profiles set role = 'admin' where id = 'O-TEU-USER-ID';
    ```
+
+## 7. Billing engine (migrations 003/004) — Fase 3/17/18
+
+Testes que dependem de uma instância Supabase real com as migrations
+003 e 004 aplicadas.
+
+### 7.1 Idempotência do webhook
+
+1. Envia o mesmo payload de `purchase_approved` duas vezes seguidas para
+   a Edge Function `cakto-webhook` (mesmo `event_id`).
+2. Confirma:
+   - `billing_events` tem **uma só linha** para esse `(provider, event_id)`.
+   - `subscriptions` tem **uma só linha** para esse `user_id` (nunca
+     duplica), `current_period_end` não avançou uma segunda vez.
+3. Repete os dois pedidos **em paralelo** (dois `curl` ao mesmo tempo,
+   ou um pequeno script com `Promise.all`) — o resultado deve ser
+   idêntico: só um dos dois processa, o outro recebe
+   "evento duplicado, ignorado" (200 OK, sem efeito).
+
+### 7.2 Renovação não duplica
+
+1. Com o User A já Premium (evento `purchase_approved` processado),
+   envia um `subscription_renewed` com `event_id` diferente.
+2. Confirma: continua a haver **uma só** linha em `subscriptions`,
+   `current_period_end` avançou, e há agora **duas** linhas em
+   `billing_events` (uma por evento, isso é esperado — o que não pode
+   duplicar é a subscription).
+
+### 7.3 Cancelamento mantém Premium até ao fim do período
+
+1. Envia `subscription_canceled`.
+2. Confirma: `status='canceled'`, `plan` continua `'premium'`,
+   `current_period_end` não muda.
+3. Chama `select public.has_active_premium('<user_id>')` → deve
+   devolver `true` enquanto `current_period_end >= current_date`.
+4. Muda manualmente `current_period_end` para ontem e corre
+   `select public.expire_subscriptions();` → confirma que passa a
+   `plan='free', status='expired'` e que `has_active_premium()` passa a
+   `false`. As contas/metas/dívidas do utilizador continuam todas lá.
+
+### 7.4 Refund/chargeback revogam de imediato
+
+1. Com o User A Premium e `current_period_end` no futuro, envia
+   `refund` (ou `chargeback`).
+2. Confirma: `plan='free'`, `status='expired'` **imediatamente** (ao
+   contrário do cancelamento normal, não espera pelo fim do período).
+
+### 7.5 Race condition nos limites do Free
+
+Com o User A no Free (0 contas):
+
+1. Dispara **duas** chamadas a `create_account` em paralelo (ex:
+   `Promise.all([supabase.rpc('create_account', {...}), supabase.rpc('create_account', {...})])`
+   repetido até já existirem 2 contas, depois testa a 3ª/4ª em paralelo).
+2. Resultado esperado: nunca mais do que 2 contas no total — uma das
+   duas chamadas concorrentes para a 3ª conta tem de falhar com
+   `LIMIT_REACHED`, mesmo tendo chegado ao "mesmo tempo". Repete para
+   metas, dívidas, recorrentes e orçamentos.

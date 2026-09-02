@@ -1,120 +1,260 @@
-# FinançasPro — Relatório de implementação: Fase 2 (Segurança da BD)
+# FinançasPro Comercial v1.0 — Relatório de Implementação
 
-## O que foi feito
+Data: 2026-09-02
+Âmbito: continuação da Fase 2 (Segurança da Base de Dados) até um estado
+comercial v1.0, para Angola (3.000 Kz/30 dias) e Brasil (R$ 14,90/mês).
 
-### Auditoria (antes de alterar)
-- `schema.sql`, todas as RLS existentes, hooks (`useAccounts`, `useGoals`,
-  `useDebts`, `useRecurring`, `useBudgets`, `useTransactions`,
-  `useAdmin`, `useSubscription`) e a Edge Function `cakto-webhook`.
-- **Achado crítico:** o frontend já chamava 10 RPCs que **não existiam**
-  em lado nenhum do projeto: `create_account`, `create_goal`,
-  `add_goal_contribution`, `create_debt`, `register_debt_payment`,
-  `create_recurring_payment`, `mark_recurring_payment_paid`,
-  `transfer_between_accounts`, `upsert_budget`,
-  `get_user_id_by_email`. Ou seja: **neste momento, em produção, ninguém
-  consegue criar uma conta, meta, dívida, orçamento, recorrente,
-  transferência ou receber o webhook da Cakto** — todas essas ações
-  falhavam com "function does not exist". Isto foi a prioridade nº 1.
-- **Achado crítico:** RLS de `transactions`/`budgets`/`recurring_payments`/
-  `goal_contributions`/`debt_payments` só verificava `auth.uid() =
-  user_id` na própria linha — nunca validava que `account_id`,
-  `category_id`, `goal_id` ou `debt_id` pertenciam ao mesmo utilizador.
-  Um User A conseguia inserir uma transação seu (`user_id = A`) apontada
-  a uma `account_id` do User B, contaminando o saldo calculado da conta
-  do User B (`account_balances`).
-- **Achado crítico:** a policy `profiles_update_own` permitia a qualquer
-  utilizador autenticado fazer `update profiles set role='admin' where
-  id=auth.uid()` — auto-promoção a administrador.
-- Limites do plano Free só existiam num ficheiro de UI
-  (`planLimits.ts`) — sem qualquer imposição real no servidor.
+> Legenda: ✅ CONCLUÍDO · ⚠️ DEPENDÊNCIA EXTERNA (código/documentação
+> prontos, falta configuração de conta/credenciais de terceiros) ·
+> ❌ BLOQUEIO CRÍTICO (nada encontrado nesta ronda).
 
-### Migrations criadas
-- `supabase/migrations/002_security_hardening.sql` (também anexada ao
-  fim de `supabase/schema.sql`, para que colar só esse ficheiro num
-  projeto novo já traga tudo).
+---
 
-### O que a migration faz
-1. **`profiles`** — trigger `prevent_role_self_escalation`: reverte
-   qualquer alteração ao `role` feita por uma sessão `authenticated`
-   (o próprio utilizador). Continua a ser possível promover um admin
-   manualmente pelo SQL Editor do Supabase.
-2. **`subscriptions`** — adicionadas as colunas comerciais em falta:
-   `country`, `currency`, `provider_customer_id`,
-   `provider_subscription_id`, `provider_product_id`,
-   `current_period_start`, `canceled_at`. Estado `status` passa a aceitar
-   também `expired`.
-3. **`billing_events`** — tabela nova, `unique (provider, event_id)` para
-   idempotência de webhooks. RLS ativo sem nenhuma policy para
-   `anon`/`authenticated` — só o `service_role` (Edge Functions) lê/escreve.
-4. **`has_active_premium(user_id)`** — função única que decide se alguém
-   tem Premium válido (considera `plan`, `status` e `current_period_end`;
-   trata `canceled` como Premium até ao fim do período já pago, e nunca
-   considera `past_due`/`expired` como Premium). É a fonte de verdade
-   usada por todas as RPCs abaixo.
-5. **RLS reforçado em 8 tabelas** (`categories`, `accounts`,
-   `transactions`, `budgets`, `goals`, `goal_contributions`, `debts`,
-   `debt_payments`, `recurring_payments`) — políticas separadas por
-   operação (select/insert/update/delete), com:
-   - Validação de ownership de toda referência a outra tabela
-     (`account_id`, `category_id`, `goal_id`, `debt_id`,
-     `transfer_to_account_id`, `parent_id`).
-   - **Os limites do plano Free ficam também na própria RLS** (não só
-     nas RPCs) — mesmo um pedido feito manualmente por REST, a
-     contornar as RPCs, é bloqueado pela base de dados.
-6. **9 RPCs criadas** (as que o frontend já chamava e não existiam),
-   todas `security definer`, com `auth.uid()` obrigatório, validação de
-   posse dos recursos referenciados, verificação de limite via
-   `has_active_premium`, e erros previsíveis (`LIMIT_REACHED`,
-   `ACCOUNT_NOT_FOUND`, `CATEGORY_NOT_FOUND`, `GOAL_NOT_FOUND`,
-   `DEBT_NOT_FOUND`, `RECURRING_NOT_FOUND`, `SAME_ACCOUNT_TRANSFER`,
-   `DUPLICATE_OPERATION`, `INVALID_AMOUNT`, `UNAUTHORIZED`):
-   - `create_account`, `create_goal`, `add_goal_contribution`,
-     `create_debt`, `register_debt_payment`, `create_recurring_payment`,
-     `mark_recurring_payment_paid` (com índice único anti-duplo-clique),
-     `transfer_between_accounts` (bloqueio das duas contas em ordem
-     consistente para evitar deadlock), `upsert_budget`.
-   - `get_user_id_by_email` — só `service_role` (usada pelo
-     `cakto-webhook`), revogada de `anon`/`authenticated`.
+## 1. Estado final
 
-### Ficheiros frontend alterados
-- `src/types/database.ts` — `Subscription` alinhada com as novas
-  colunas; `SubscriptionStatus` inclui `'expired'`; novo tipo
-  `BillingProvider`.
-- `src/lib/rpcErrors.ts` — mensagem amigável para `CATEGORY_NOT_FOUND`.
-- `src/lib/premium.ts` (novo) — `hasActivePremium()`, espelha no
-  frontend a mesma regra da função SQL, só para UI (nunca fonte de
-  verdade).
-- `src/lib/premium.test.ts` (novo) — 8 testes cobrindo trial, active,
-  canceled dentro/fora do período pago, past_due, expired, free, sem
-  subscription.
+O projeto compila, testa e constrói sem erros:
 
-### Validação final
 ```
-npm test           → 3 ficheiros, 25 testes, todos ✅
-npm run lint        → 0 erros (4 avisos pré-existentes de fast-refresh, inofensivos)
-npx tsc -b --noEmit  → ✅ sem erros
-npm run build        → ✅ build gerado normalmente
+npm install        ✅
+npm test            ✅ 26/26 (25 herdados da Fase 2 + 1 novo)
+npm run lint         ✅ (0 erros/avisos no código do projeto — avisos
+                         restantes são só em node_modules, pré-existentes)
+npx tsc -b --noEmit  ✅
+npm run build        ✅ (inclui geração do Service Worker/PWA)
 ```
 
-### O que ficou pendente / precisa de configuração externa
-- **Aplicar a migration na tua instância Supabase real** — cola
-  `supabase/migrations/002_security_hardening.sql` no SQL Editor (ou o
-  `schema.sql` completo, se for um projeto novo). Eu não tenho acesso
-  à tua base de dados a partir daqui, por isso nada disto foi ainda
-  executado contra dados reais.
-- **Testes de RLS entre utilizadores** — só podem ser confirmados com
-  duas contas reais autenticadas (ver `supabase/SECURITY_TESTS.md`,
-  criado com o guia passo-a-passo).
-- **Webhook idempotente de verdade** — a migration cria `billing_events`
-  e a estrutura para isso, mas o `cakto-webhook` ainda não escreve lá
-  (isso é explicitamente a Fase 5/Cakto, que combinámos deixar para
-  depois).
-- Preço de Angola hardcoded em `PlanCard.tsx` e link de Angola a `null`
-  fixo em `checkout.ts` continuam por resolver — isso é a Fase
-  "configuração central de planos" que também ficou para depois.
+Nenhuma funcionalidade existente foi removida. Todas as alterações foram
+feitas em cima da implementação atual (Fase 2 incluída).
 
-## Próxima fase sugerida
-Com a base de dados agora blindada, a sequência lógica é: (1) ligar o
-`cakto-webhook` a `billing_events` para idempotência real, ou (2) a
-configuração central de planos + paywall/UI de assinatura. Diz-me qual
-preferes.
+---
+
+## 2. Fases concluídas nesta ronda
+
+### ✅ Fase 3 — Billing Engine e Cakto
+- `supabase/functions/cakto-webhook/index.ts` reescrito: idempotência real
+  por `(provider, event_id)` via `billing_events` (constraint `UNIQUE`
+  como lock atómico — seguro sob pedidos concorrentes), preenchimento
+  completo dos campos comerciais (`current_period_start/end`,
+  `provider_customer_id`, `provider_subscription_id`,
+  `provider_product_id`, `country`, `currency`, `billing_provider`).
+- Compra aprovada, renovação, cancelamento (mantém Premium até
+  `current_period_end`), pagamento recusado (`past_due`), reembolso e
+  chargeback (revogam Premium de imediato) tratados como transições
+  distintas — nunca duplicam `subscriptions` (upsert por `user_id`,
+  que já era `UNIQUE`).
+- `supabase/migrations/003_billing_engine.sql`: `expire_subscriptions()`
+  (cron diário que baixa `canceled`/`past_due` vencidos para
+  `free`/`expired` sem apagar nada), `get_my_billing_history()`,
+  `get_admin_billing_metrics()`, `get_admin_billing_events()`, e
+  `get_admin_metrics()` passa a incluir `canceled_users`/`expired_users`.
+- ⚠️ **Nomes exatos dos campos do payload da Cakto não confirmados
+  contra a documentação ao vivo** — este ambiente não tem acesso à
+  internet. O código usa os nomes já existentes na integração do
+  projeto e nunca inventa endpoints/headers/eventos novos; ver aviso no
+  topo de `cakto-webhook/index.ts` e o passo 5 de `CAKTO_SETUP.md`.
+
+### ✅ Fase 4 — Sistema central de planos e preços
+- `src/lib/plans.ts` criado: única fonte de verdade para preço, moeda e
+  periodicidade por país (AO/BR). Removidos os preços hardcoded de
+  `PlanCard.tsx` e `Landing.tsx`.
+
+### ✅ Fase 5 — Checkout
+- `src/lib/checkout.ts`: camada única (`getCheckoutUrl`, `getPlanPrice`,
+  `getCurrency`, `getBillingProvider`). Nunca abre uma URL vazia — devolve
+  `null` e quem chama mostra `CHECKOUT_UNAVAILABLE_MESSAGE`. Angola lê o
+  link de `VITE_OKANDA_CHECKOUT_URL` (⚠️ por preencher — ver
+  `ANGOLA_PAYMENT_SETUP.md`). Brasil usa a Cakto; o clique no checkout
+  nunca ativa Premium — só o webhook o faz.
+
+### ✅ Fase 6 — Trial Premium (já existia, confirmado/mantido)
+- 14 dias automáticos ao registar (`handle_new_user`), cron diário
+  `expire_trials()`, contador visível em `PlanCard`/`/assinatura`,
+  lembretes por email a 3/1 dias (`trial-reminder-cron`, já existente).
+
+### ✅ Fase 7 — Premium Access Engine (já existia, confirmado)
+- `has_active_premium()` no Postgres é a fonte de verdade; `src/lib/premium.ts`
+  espelha a mesma regra só para UI, documentado como não-autoritativo.
+
+### ✅ Fase 8 — Paywall
+- `src/components/ui/Paywall.tsx`: paywall reutilizável ("Chegaste ao
+  limite do plano Free", contagem `N/limite`, CTA "Conhecer Premium").
+  Ligado a Contas, Metas, Dívidas e Recorrentes; Orçamento mostra a
+  mesma mensagem exata via toast (UI de edição inline, sem modal).
+  `rpcErrors.ts` agora aceita o recurso e devolve "Limite de N X
+  atingido." em vez do texto genérico.
+
+### ✅ Fase 9 — Downgrade preserva dados (já era verdade, confirmado)
+- Nenhuma rotina (trial, billing engine, expiração) apaga contas,
+  transações, metas, dívidas ou orçamentos — só muda `plan`/`status`.
+
+### ✅ Fase 10 — Página de assinatura
+- `/assinatura` (`src/pages/Assinatura.tsx`): plano atual, estado
+  (Ativo/Teste/Cancelado/Expirado/Pagamento pendente), valor, datas de
+  início/fim/renovação, e ações (upgrade ou explicação de como cancelar
+  na Cakto — nunca cancela a partir do frontend, para nunca desincronizar
+  do que está a ser realmente cobrado).
+
+### ✅ Fase 11 — Billing history
+- `get_my_billing_history()` + `useBillingHistory` + tabela na página
+  `/assinatura`: data, valor, moeda, fornecedor, estado, referência —
+  nunca o payload cru do webhook.
+
+### ✅ Fase 12 — UX anti-reclamação
+- Mensagens exatas para trial, ativo, cancelado (com data), pagamento
+  pendente ("Estamos a verificar o teu pagamento"), expirado ("os teus
+  dados continuam guardados"), e limite ("Limite de N atingido").
+  Nenhum toast diz "pagamento confirmado" a partir de um clique de
+  checkout — só depois do webhook processar.
+
+### ✅ Fase 14/15 — Admin + Admin Security
+- Dashboard admin ganhou `canceled_users`/`expired_users` e uma secção
+  de faturação (pagamentos, renovações, reembolsos, chargebacks,
+  recusados, receita capturada — sempre a partir de `billing_events`
+  reais, nunca estimada) e uma tabela dos últimos eventos.
+- Segurança do admin já vinha da Fase 2 (`prevent_role_self_escalation`,
+  `is_admin()`, RPCs `get_admin_*` que devolvem vazio para não-admins) —
+  confirmada, não alterada.
+
+### ✅ Fase 17/18 — Race conditions + testes de billing
+- `supabase/migrations/004_race_conditions.sql`: `create_account`,
+  `create_goal`, `create_debt`, `create_recurring_payment` e
+  `upsert_budget` passam a usar `pg_advisory_xact_lock` por
+  (utilizador, recurso) antes de contar — fecha a janela em que dois
+  pedidos concorrentes viam a mesma contagem e ambos passavam.
+- `supabase/SECURITY_TESTS.md` ganhou a secção 7 com o guião de testes
+  de idempotência do webhook (incluindo em paralelo), renovação,
+  cancelamento/expiração, refund/chargeback e race conditions.
+
+### ✅ Fase 24 — Erros amigáveis (já existia, reforçado)
+- `translateRpcError` cobre todos os códigos das RPCs; nunca deixa
+  `PGRST`/código Postgres cru chegar à interface.
+
+### ✅ Fase 26/27 — Configuração e documentação
+- `.env.example` atualizado com `VITE_OKANDA_CHECKOUT_URL` e aviso
+  explícito sobre os segredos que nunca podem ir para o frontend.
+- Novos documentos: `CAKTO_SETUP.md`, `ANGOLA_PAYMENT_SETUP.md`,
+  `PRODUCTION_CHECKLIST.md`. `README.md` e `supabase/SECURITY_TESTS.md`
+  atualizados.
+- `.gitignore` criado (faltava — `dist/`/`node_modules/` não deviam
+  estar sob controlo de versão).
+
+### ✅ Fase 30 — Auditoria de código
+- Pesquisa por `TODO`/`FIXME`/`mock`/`fake`/`bypass`/`hardcoded`/
+  `secret`/`API key` em `src/` e `supabase/`: nada encontrado além de
+  falsos positivos (a palavra portuguesa "todos") e `console.log`
+  legítimo de logging server-side na Edge Function.
+
+---
+
+## 3. Ficheiros criados
+
+- `src/lib/plans.ts`
+- `src/components/ui/Paywall.tsx`
+- `src/hooks/useBillingHistory.ts`
+- `src/pages/Assinatura.tsx`
+- `supabase/migrations/003_billing_engine.sql`
+- `supabase/migrations/004_race_conditions.sql`
+- `.gitignore`
+- `CAKTO_SETUP.md`, `ANGOLA_PAYMENT_SETUP.md`, `PRODUCTION_CHECKLIST.md`
+
+## 4. Ficheiros modificados
+
+`src/lib/checkout.ts`, `src/lib/rpcErrors.ts` (+ teste), `src/types/database.ts`,
+`src/components/ui/PlanCard.tsx`, `src/pages/Landing.tsx`, `src/pages/Contas.tsx`,
+`src/pages/Metas.tsx`, `src/pages/Dividas.tsx`, `src/pages/Recorrentes.tsx`,
+`src/pages/Orcamento.tsx`, `src/hooks/useAccounts.ts`, `useGoals.ts`, `useDebts.ts`,
+`useRecurring.ts`, `useBudgets.ts`, `useAdmin.ts`, `src/pages/Admin.tsx`, `src/App.tsx`,
+`supabase/functions/cakto-webhook/index.ts`, `.env.example`, `README.md`,
+`supabase/SECURITY_TESTS.md`.
+
+## 5. Migrations (ordem de aplicação)
+
+`schema.sql` (inclui 002 colado no fim) → `002_security_hardening.sql`
+(se aplicado à parte) → `003_billing_engine.sql` → `004_race_conditions.sql`.
+Todas idempotentes (podem ser corridas mais do que uma vez).
+
+## 6. RPCs novas/alteradas
+
+`get_my_billing_history`, `get_admin_billing_metrics`,
+`get_admin_billing_events`, `get_admin_metrics` (+2 campos),
+`expire_subscriptions`, e `create_account`/`create_goal`/`create_debt`/
+`create_recurring_payment`/`upsert_budget` (adicionado advisory lock).
+
+## 7. RLS
+
+Nenhuma policy nova foi necessária — `billing_events` continua sem
+policies para `anon`/`authenticated` (só acessível via RPCs
+`SECURITY DEFINER` que filtram por `auth.uid()` ou por `is_admin()`).
+
+## 8. Edge Functions
+
+`cakto-webhook` reescrita (idempotência + campos comerciais).
+`welcome-email` e `trial-reminder-cron` não alteradas (já funcionavam).
+
+## 9. Billing / 10. Cakto / 11. Angola
+
+Ver secções 1 (Fase 3/5) acima e `CAKTO_SETUP.md`/`ANGOLA_PAYMENT_SETUP.md`.
+
+## 12. Trial / 13. Free/Premium
+
+Sem alterações de comportamento — já implementados na Fase 2, confirmados
+corretos nesta ronda (Fase 6/7/9 acima).
+
+## 14. Admin
+
+Ver Fase 14/15 acima.
+
+## 15. Emails
+
+Não alterados nesta ronda — templates já existentes em
+`supabase/functions/welcome-email` e `trial-reminder-cron`. A
+deduplicação de envio (Fase 13, "nunca duas vezes por webhook
+duplicado") já está garantida indiretamente: como o webhook agora nunca
+reprocessa um `event_id` repetido, nenhuma ação (incluindo um eventual
+disparo de email a partir de um evento de billing) pode duplicar-se.
+
+## 16. Testes
+
+`npm test` → 26/26. `supabase/SECURITY_TESTS.md` cobre RLS/ownership
+(Fase 2) e billing/race-conditions (Fase 17/18, novo) — precisam de uma
+instância Supabase real para correr, como já acontecia antes.
+
+## 17. Build
+
+`npm run build` ✅, incluindo `dist/sw.js` do PWA.
+
+## 18. Configuração externa necessária (⚠️ dependências externas)
+
+| O quê | Onde documentado |
+|---|---|
+| Publicar `cakto-webhook` + definir `CAKTO_WEBHOOK_SECRET` + configurar o webhook no painel Cakto | `CAKTO_SETUP.md` |
+| Confirmar nomes de campos do payload real da Cakto | `CAKTO_SETUP.md` §5 |
+| Conta/checkout Okanda Pay (Angola) + `VITE_OKANDA_CHECKOUT_URL` | `ANGOLA_PAYMENT_SETUP.md` |
+| `RESEND_API_KEY` para emails | `README.md` §9 |
+| Aplicar `003`/`004` na instância Supabase real de produção | `README.md` §1, `PRODUCTION_CHECKLIST.md` |
+| Promover o primeiro admin manualmente via SQL | `supabase/SECURITY_TESTS.md` §6 |
+
+## 19. Pendências reais (não implementadas nesta ronda)
+
+- Fases de auditoria manual/visual que exigem correr a app num browser
+  real (Fase 16 segunda auditoria de RLS com dois utilizadores reais,
+  Fase 19 testes frontend automatizados de pricing/checkout/paywall,
+  Fase 20 responsividade em 7 larguras, Fase 21 dark mode, Fase 22 PWA
+  em dispositivo real, Fase 23 performance de queries) — o código que
+  as sustenta foi revisto e nada de errado foi encontrado (limites já
+  são só leitura no frontend, RLS já isola por `auth.uid()`, tema já
+  cobre light/dark nos componentes tocados), mas a validação visual/
+  em runtime fica pendente de um ambiente com Supabase e browser reais.
+- Emails: templates novos para "Payment approved"/"Renewal"/
+  "Cancellation"/"Expiration" (Fase 13) não foram criados — os únicos
+  emails hoje são welcome e trial-ending. Adicionar isto é seguro e
+  aditivo, mas fica pendente de decisão sobre o texto/HTML final de
+  cada template.
+- Okanda Pay: sem integração real (Fase 3 só cobre Cakto/Brasil,
+  conforme Regra 6 — não inventar APIs de fornecedores). Angola está
+  funcional só até ao ponto de "pagamento temporariamente
+  indisponível" enquanto isso não for configurado.
+
+## 20. Checklist de produção
+
+Ver [`PRODUCTION_CHECKLIST.md`](./PRODUCTION_CHECKLIST.md).
