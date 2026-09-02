@@ -16,7 +16,7 @@ import type { CurrencyCode } from '../types/database';
 
 export type CountryCode = 'AO' | 'BR';
 export type BillingInterval = '30d' | 'monthly';
-export type BillingProviderId = 'cakto' | 'okanda';
+export type BillingProviderId = 'cakto' | 'vanqir';
 
 export interface CountryPlanConfig {
   country: CountryCode;
@@ -36,7 +36,7 @@ export const PLAN_CONFIG: Record<CountryCode, CountryPlanConfig> = {
     currency: 'AOA',
     premiumPrice: 3000,
     billingInterval: '30d',
-    billingProvider: 'okanda',
+    billingProvider: 'vanqir',
     priceLabel: '3.000 Kz / 30 dias',
   },
   BR: {

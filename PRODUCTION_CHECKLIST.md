@@ -25,11 +25,14 @@
       Editor (nunca pelo frontend).
 - [ ] Pelo menos um teste manual completo da secção B abaixo feito em
       produção (não só em ambiente de desenvolvimento).
-- [ ] Se Angola for lançar já: `VITE_OKANDA_CHECKOUT_URL` configurado —
-      ver [`ANGOLA_PAYMENT_SETUP.md`](./ANGOLA_PAYMENT_SETUP.md). Sem
-      isso, os clientes em Angola veem "pagamento temporariamente
-      indisponível" (não é um erro — é o comportamento esperado até
-      essa integração existir).
+- [x] Link de checkout do Vanqir Pay (Angola) já configurado em
+      `src/lib/checkout.ts` (substituível via `VITE_VANQIR_CHECKOUT_URL`).
+- [ ] Confirmação automática do pagamento Vanqir Pay (webhook ou
+      processo manual documentado) — ver [`ANGOLA_PAYMENT_SETUP.md`](./ANGOLA_PAYMENT_SETUP.md).
+      Sem isso, o checkout abre normalmente mas o Premium não ativa
+      sozinho depois de pagar (por desenho — nunca ativamos Premium só
+      pelo clique no checkout).
+- [ ] Migration `005_vanqir_provider.sql` aplicada no Supabase de produção.
 
 ## B. Sequência de teste manual guiado
 

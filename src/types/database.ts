@@ -10,7 +10,7 @@ export type NotificationType = 'orcamento' | 'meta' | 'recorrente' | 'divida' | 
 export type PlanType = 'free' | 'premium';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'expired';
 export type UserRole = 'user' | 'admin';
-export type BillingProvider = 'cakto' | 'okanda';
+export type BillingProvider = 'cakto' | 'vanqir';
 
 export interface Profile {
   id: string;

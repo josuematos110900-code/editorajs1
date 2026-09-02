@@ -6,12 +6,17 @@ import { getCountryFromCurrency, getBillingProvider, type CountryCode, type Bill
 // (CAKTO_WEBHOOK_SECRET) só existe server-side, na Edge Function.
 const CAKTO_CHECKOUT_URL = 'https://pay.cakto.com.br/vfajkk6_1064672';
 
-// Ainda por criar — assim que existir, cola aqui o link de checkout de
-// Angola (Okanda Pay) e o botão de upgrade passa a funcionar sozinho.
-// Pode também vir de VITE_OKANDA_CHECKOUT_URL (ver .env.example) sem
-// precisar de tocar em código.
+// Link de checkout do Vanqir Pay (Angola, 3.000 Kz / 30 dias, pagamento
+// único sem renovação automática — ver ANGOLA_PAYMENT_SETUP.md). Não
+// sabemos se o Vanqir aceita parâmetros de URL para pré-preencher o
+// email (não documentado neste ambiente sem acesso à internet), por
+// isso o link é usado tal como foi dado, sem inventar query params.
+// Pode ser substituído sem tocar em código via VITE_VANQIR_CHECKOUT_URL
+// (ver .env.example) — útil se o link mudar (ex: produto/campanha nova).
+const VANQIR_CHECKOUT_URL = 'https://pay.vanqir.com/checkout/0833edbc-2ac4-4985-a266-8c50527c7382';
+
 const ANGOLA_CHECKOUT_URL: string | null =
-  (import.meta.env.VITE_OKANDA_CHECKOUT_URL as string | undefined)?.trim() || null;
+  (import.meta.env.VITE_VANQIR_CHECKOUT_URL as string | undefined)?.trim() || VANQIR_CHECKOUT_URL;
 
 interface CheckoutParams {
   currency: CurrencyCode;

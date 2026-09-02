@@ -61,10 +61,12 @@ feitas em cima da implementação atual (Fase 2 incluída).
 ### ✅ Fase 5 — Checkout
 - `src/lib/checkout.ts`: camada única (`getCheckoutUrl`, `getPlanPrice`,
   `getCurrency`, `getBillingProvider`). Nunca abre uma URL vazia — devolve
-  `null` e quem chama mostra `CHECKOUT_UNAVAILABLE_MESSAGE`. Angola lê o
-  link de `VITE_OKANDA_CHECKOUT_URL` (⚠️ por preencher — ver
-  `ANGOLA_PAYMENT_SETUP.md`). Brasil usa a Cakto; o clique no checkout
-  nunca ativa Premium — só o webhook o faz.
+  `null` e quem chama mostra `CHECKOUT_UNAVAILABLE_MESSAGE`. Angola usa o
+  checkout real do Vanqir Pay (substituível via `VITE_VANQIR_CHECKOUT_URL`
+  — ver `ANGOLA_PAYMENT_SETUP.md`). Brasil usa a Cakto; em ambos, o
+  clique no checkout nunca ativa Premium sozinho — só a confirmação real
+  do pagamento o faz (webhook, no caso da Cakto; ⚠️ ainda por ligar no
+  caso do Vanqir Pay).
 
 ### ✅ Fase 6 — Trial Premium (já existia, confirmado/mantido)
 - 14 dias automáticos ao registar (`handle_new_user`), cron diário
@@ -130,7 +132,7 @@ feitas em cima da implementação atual (Fase 2 incluída).
   `PGRST`/código Postgres cru chegar à interface.
 
 ### ✅ Fase 26/27 — Configuração e documentação
-- `.env.example` atualizado com `VITE_OKANDA_CHECKOUT_URL` e aviso
+- `.env.example` atualizado com `VITE_VANQIR_CHECKOUT_URL` e aviso
   explícito sobre os segredos que nunca podem ir para o frontend.
 - Novos documentos: `CAKTO_SETUP.md`, `ANGOLA_PAYMENT_SETUP.md`,
   `PRODUCTION_CHECKLIST.md`. `README.md` e `supabase/SECURITY_TESTS.md`
@@ -229,9 +231,9 @@ instância Supabase real para correr, como já acontecia antes.
 |---|---|
 | Publicar `cakto-webhook` + definir `CAKTO_WEBHOOK_SECRET` + configurar o webhook no painel Cakto | `CAKTO_SETUP.md` |
 | Confirmar nomes de campos do payload real da Cakto | `CAKTO_SETUP.md` §5 |
-| Conta/checkout Okanda Pay (Angola) + `VITE_OKANDA_CHECKOUT_URL` | `ANGOLA_PAYMENT_SETUP.md` |
+| Confirmação automática do pagamento Vanqir Pay (Angola) — webhook ou processo manual | `ANGOLA_PAYMENT_SETUP.md` |
 | `RESEND_API_KEY` para emails | `README.md` §9 |
-| Aplicar `003`/`004` na instância Supabase real de produção | `README.md` §1, `PRODUCTION_CHECKLIST.md` |
+| Aplicar `003`/`004`/`005` na instância Supabase real de produção | `README.md` §1, `PRODUCTION_CHECKLIST.md` |
 | Promover o primeiro admin manualmente via SQL | `supabase/SECURITY_TESTS.md` §6 |
 
 ## 19. Pendências reais (não implementadas nesta ronda)
@@ -250,10 +252,13 @@ instância Supabase real para correr, como já acontecia antes.
   emails hoje são welcome e trial-ending. Adicionar isto é seguro e
   aditivo, mas fica pendente de decisão sobre o texto/HTML final de
   cada template.
-- Okanda Pay: sem integração real (Fase 3 só cobre Cakto/Brasil,
-  conforme Regra 6 — não inventar APIs de fornecedores). Angola está
-  funcional só até ao ponto de "pagamento temporariamente
-  indisponível" enquanto isso não for configurado.
+- Vanqir Pay (Angola): o link de checkout real já está configurado e
+  funcional (`src/lib/checkout.ts`), mas ainda não há confirmação
+  automática do pagamento (webhook ou processo manual) — Fase 3 só
+  cobre a Cakto/Brasil de ponta a ponta, conforme Regra 6 (não inventar
+  APIs de fornecedores sem documentação confirmada). Até isso ficar
+  pronto, o checkout do Vanqir abre normalmente mas o Premium não ativa
+  sozinho depois do pagamento.
 
 ## 20. Checklist de produção
 
