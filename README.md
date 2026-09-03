@@ -142,7 +142,7 @@ A lógica de cálculo financeiro (saldo, orçamento, "quanto posso gastar hoje",
 
 O FinançasPro é um micro-SaaS comercial completo:
 
-- **Planos Free/Premium** com preço e moeda centralizados em `src/lib/plans.ts` (Angola: 3.000 Kz/30 dias · Brasil: R$ 14,90/mês) — nenhum componente tem preços escritos à mão. Limites do Free (`src/lib/planLimits.ts`) são só para a UI; a aplicação real acontece nas RPCs/RLS do servidor, incluindo sob pedidos concorrentes (`004_race_conditions.sql`).
+- **Planos Free/Premium** com preço e moeda centralizados em `src/lib/plans.ts` (Angola: 3.805 Kz/30 dias · Brasil: R$ 15,89/mês) — nenhum componente tem preços escritos à mão. Limites do Free (`src/lib/planLimits.ts`) são só para a UI; a aplicação real acontece nas RPCs/RLS do servidor, incluindo sob pedidos concorrentes (`004_race_conditions.sql`).
 - **Trial de 14 dias grátis** automático em todo o novo registo — uma tarefa `pg_cron` corre todos os dias e reverte para Free quem não fez upgrade.
 - **Billing engine** (`003_billing_engine.sql` + `supabase/functions/cakto-webhook`): idempotência real por `(provider, event_id)`, ativação/renovação/cancelamento/reembolso/chargeback/pagamento recusado tratados como estados distintos — ver [`CAKTO_SETUP.md`](./CAKTO_SETUP.md).
 - **Pagamentos**: Cakto no Brasil (assinatura recorrente) e Vanqir em Angola (pagamento único de 30 dias) — checkout e webhook implementados para os dois, com idempotência e verificação de assinatura; falta publicar/configurar os secrets em produção, ver [`CAKTO_SETUP.md`](./CAKTO_SETUP.md) e [`ANGOLA_PAYMENT_SETUP.md`](./ANGOLA_PAYMENT_SETUP.md).

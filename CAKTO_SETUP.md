@@ -1,13 +1,13 @@
 # Configuração da Cakto (Brasil)
 
 O FinançasPro usa a [Cakto](https://cakto.com.br) para cobrar o plano
-Premium no Brasil: **R$ 14,90/mês** (valor configurado em
+Premium no Brasil: **R$ 15,89/mês** (valor configurado em
 `src/lib/plans.ts`).
 
 ## 1. Produto na Cakto
 
 1. Cria um produto de **assinatura** (subscription) na Cakto com o valor
-   R$ 14,90/mês.
+   R$ 15,89/mês.
 2. Copia o link de checkout do produto e atualiza `CAKTO_CHECKOUT_URL`
    em `src/lib/checkout.ts` se for diferente do que já está lá.
 3. **Importante**: o checkout do FinançasPro já envia `email` e

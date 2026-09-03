@@ -1,6 +1,6 @@
 # Configuração do pagamento em Angola (Vanqir Pay)
 
-O plano Premium em Angola custa **3.000 Kz / 30 dias** (configurado em
+O plano Premium em Angola custa **3.805 Kz / 30 dias** (configurado em
 `src/lib/plans.ts`), pago através do Vanqir como **pagamento único sem
 renovação automática** (diferente do Brasil, que é assinatura recorrente
 via Cakto).

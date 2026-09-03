@@ -1,12 +1,12 @@
 import type { CurrencyCode } from '../types/database';
 import { getCountryFromCurrency, getBillingProvider, type CountryCode, type BillingProviderId } from './plans';
 
-// Link de checkout da Cakto (Brasil, R$ 14,90/mês). Fixo porque é um link
+// Link de checkout da Cakto (Brasil, R$ 15,89/mês). Fixo porque é um link
 // de produto público da Cakto, não um segredo — o segredo de verdade
 // (CAKTO_WEBHOOK_SECRET) só existe server-side, na Edge Function.
 const CAKTO_CHECKOUT_URL = 'https://pay.cakto.com.br/vfajkk6_1064672';
 
-// Link de checkout do Vanqir Pay (Angola, 3.000 Kz / 30 dias, pagamento
+// Link de checkout do Vanqir Pay (Angola, 3.805 Kz / 30 dias, pagamento
 // único sem renovação automática — ver ANGOLA_PAYMENT_SETUP.md). Não
 // sabemos se o Vanqir aceita parâmetros de URL para pré-preencher o
 // email (não documentado neste ambiente sem acesso à internet), por

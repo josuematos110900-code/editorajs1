@@ -34,18 +34,18 @@ export const PLAN_CONFIG: Record<CountryCode, CountryPlanConfig> = {
   AO: {
     country: 'AO',
     currency: 'AOA',
-    premiumPrice: 3000,
+    premiumPrice: 3805,
     billingInterval: '30d',
     billingProvider: 'vanqir',
-    priceLabel: '3.000 Kz / 30 dias',
+    priceLabel: '3.805 Kz / 30 dias',
   },
   BR: {
     country: 'BR',
     currency: 'BRL',
-    premiumPrice: 14.9,
+    premiumPrice: 15.89,
     billingInterval: 'monthly',
     billingProvider: 'cakto',
-    priceLabel: 'R$ 14,90 / mês',
+    priceLabel: 'R$ 15,89 / mês',
   },
 };
 

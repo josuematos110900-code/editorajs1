@@ -2,7 +2,7 @@
 
 Data: 2026-09-02
 Âmbito: continuação da Fase 2 (Segurança da Base de Dados) até um estado
-comercial v1.0, para Angola (3.000 Kz/30 dias) e Brasil (R$ 14,90/mês).
+comercial v1.0, para Angola (3.805 Kz/30 dias) e Brasil (R$ 15,89/mês).
 
 > Legenda: ✅ CONCLUÍDO · ⚠️ DEPENDÊNCIA EXTERNA (código/documentação
 > prontos, falta configuração de conta/credenciais de terceiros) ·
