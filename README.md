@@ -30,6 +30,7 @@ Permite: distribuir automaticamente o salário, definir orçamentos por categori
    - [`003_billing_engine.sql`](./supabase/migrations/003_billing_engine.sql) — motor de faturação: idempotência de webhooks, histórico de pagamentos, métricas de billing para o admin.
    - [`004_race_conditions.sql`](./supabase/migrations/004_race_conditions.sql) — fecha uma condição de corrida nos limites do plano Free sob pedidos concorrentes.
    - [`005_vanqir_provider.sql`](./supabase/migrations/005_vanqir_provider.sql) — aceita `'vanqir'` como fornecedor de pagamento (Angola).
+   - [`006_vanqir_webhook.sql`](./supabase/migrations/006_vanqir_webhook.sql) — expiração automática do Premium Vanqir (pagamento único) usa o mesmo estado `expired` que o Brasil.
 4. Vai a **Project Settings > API** e copia:
    - `Project URL`
    - `anon public key`
@@ -50,7 +51,7 @@ VITE_SUPABASE_ANON_KEY=SUA_CHAVE_ANONIMA_PUBLICA
 VITE_VANQIR_CHECKOUT_URL=
 ```
 
-**Nunca** coloques a `service_role key`, `CAKTO_WEBHOOK_SECRET` ou `RESEND_API_KEY` no frontend, nem em variáveis `VITE_*` — só a `anon public key` é segura para o browser, porque o acesso aos dados é controlado pelas políticas de RLS no Supabase. Os outros segredos vivem apenas nos **Secrets** das Edge Functions (ver secção 9 e [`CAKTO_SETUP.md`](./CAKTO_SETUP.md)).
+**Nunca** coloques a `service_role key`, `CAKTO_WEBHOOK_SECRET`, `VANQIR_WEBHOOK_HOTTOK` ou `RESEND_API_KEY` no frontend, nem em variáveis `VITE_*` — só a `anon public key` é segura para o browser, porque o acesso aos dados é controlado pelas políticas de RLS no Supabase. Os outros segredos vivem apenas nos **Secrets** das Edge Functions (ver secção 9, [`CAKTO_SETUP.md`](./CAKTO_SETUP.md) e [`ANGOLA_PAYMENT_SETUP.md`](./ANGOLA_PAYMENT_SETUP.md)).
 
 ## 3. Executar localmente
 
@@ -144,7 +145,7 @@ O FinançasPro é um micro-SaaS comercial completo:
 - **Planos Free/Premium** com preço e moeda centralizados em `src/lib/plans.ts` (Angola: 3.000 Kz/30 dias · Brasil: R$ 14,90/mês) — nenhum componente tem preços escritos à mão. Limites do Free (`src/lib/planLimits.ts`) são só para a UI; a aplicação real acontece nas RPCs/RLS do servidor, incluindo sob pedidos concorrentes (`004_race_conditions.sql`).
 - **Trial de 14 dias grátis** automático em todo o novo registo — uma tarefa `pg_cron` corre todos os dias e reverte para Free quem não fez upgrade.
 - **Billing engine** (`003_billing_engine.sql` + `supabase/functions/cakto-webhook`): idempotência real por `(provider, event_id)`, ativação/renovação/cancelamento/reembolso/chargeback/pagamento recusado tratados como estados distintos — ver [`CAKTO_SETUP.md`](./CAKTO_SETUP.md).
-- **Pagamentos**: Cakto no Brasil (assinatura recorrente) e Vanqir Pay em Angola (pagamento único de 30 dias — link de checkout já configurado; falta ligar a confirmação automática do pagamento, ver [`ANGOLA_PAYMENT_SETUP.md`](./ANGOLA_PAYMENT_SETUP.md)).
+- **Pagamentos**: Cakto no Brasil (assinatura recorrente) e Vanqir em Angola (pagamento único de 30 dias) — checkout e webhook implementados para os dois, com idempotência e verificação de assinatura; falta publicar/configurar os secrets em produção, ver [`CAKTO_SETUP.md`](./CAKTO_SETUP.md) e [`ANGOLA_PAYMENT_SETUP.md`](./ANGOLA_PAYMENT_SETUP.md).
 - **Página `/assinatura`**: estado do plano, período, valor e histórico de pagamentos do próprio utilizador (`get_my_billing_history`).
 - **Painel `/admin`**: métricas de utilizadores por estado (Free/Trial/Premium/Cancelado/Expirado/Pagamento em falta) e métricas de faturação (pagamentos, renovações, reembolsos, chargebacks — sempre a partir de eventos reais, nunca estimados).
 - **Emails transacionais** via Resend — `supabase/functions/welcome-email` (boas-vindas) e `supabase/functions/trial-reminder-cron` (aviso de fim de trial, disparado diariamente por `pg_cron` + `pg_net`).

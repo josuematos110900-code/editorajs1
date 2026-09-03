@@ -25,14 +25,20 @@
       Editor (nunca pelo frontend).
 - [ ] Pelo menos um teste manual completo da secção B abaixo feito em
       produção (não só em ambiente de desenvolvimento).
-- [x] Link de checkout do Vanqir Pay (Angola) já configurado em
+- [x] Link de checkout do Vanqir (Angola) já configurado em
       `src/lib/checkout.ts` (substituível via `VITE_VANQIR_CHECKOUT_URL`).
-- [ ] Confirmação automática do pagamento Vanqir Pay (webhook ou
-      processo manual documentado) — ver [`ANGOLA_PAYMENT_SETUP.md`](./ANGOLA_PAYMENT_SETUP.md).
-      Sem isso, o checkout abre normalmente mas o Premium não ativa
-      sozinho depois de pagar (por desenho — nunca ativamos Premium só
-      pelo clique no checkout).
-- [ ] Migration `005_vanqir_provider.sql` aplicada no Supabase de produção.
+- [ ] Edge Function `vanqir-webhook` publicada
+      (`supabase functions deploy vanqir-webhook --no-verify-jwt`).
+- [ ] Secret `VANQIR_WEBHOOK_HOTTOK` definido nos Secrets da função
+      (nunca em `.env`/`VITE_*`) — ver [`ANGOLA_PAYMENT_SETUP.md`](./ANGOLA_PAYMENT_SETUP.md).
+      Se o Hottok mostrado no painel do Vanqir alguma vez for exposto
+      (print, chat, etc.), regenera-o antes de o usar em produção.
+- [ ] Webhook configurado no painel do Vanqir (Ferramentas > Webhook
+      API > Cadastrar Webhook) a apontar para essa Edge Function, com
+      pelo menos os eventos "Pagamento confirmado" e "Reembolso
+      concluído" ativos.
+- [ ] Migrations `005_vanqir_provider.sql` e `006_vanqir_webhook.sql`
+      aplicadas no Supabase de produção.
 
 ## B. Sequência de teste manual guiado
 
