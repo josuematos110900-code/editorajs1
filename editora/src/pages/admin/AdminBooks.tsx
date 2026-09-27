@@ -65,31 +65,31 @@ export default function AdminBooks() {
                   <div className="w-10 shrink-0"><BookCover book={b} size="xs" /></div>
                   <div className="min-w-0">
                     <Link to={`/admin/livros/${b.id}`} className="font-medium hover:underline">{b.title}</Link>
-                    <p className="text-xs text-ink-500">{authorName(b.authorId)}</p>
+                    <p className="text-xs text-muted">{authorName(b.authorId)}</p>
                   </div>
                 </div>
               </td>
               <td className="px-4 py-3 tabular-nums">{formatMoney(b.price)}</td>
               <td className="px-4 py-3 tabular-nums">{b.stock}</td>
               <td className="px-4 py-3">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${b.published ? 'bg-leaf-100 text-leaf-800' : 'bg-ink-100 text-ink-600'}`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${b.published ? 'bg-success-soft text-success' : 'bg-surface-alt text-muted'}`}>
                   {b.published ? 'Publicado' : 'Rascunho'}
                 </span>
               </td>
               <td className="px-4 py-3">
-                <button type="button" onClick={() => setPreorderBook(b)} className="text-left hover:underline">
-                  {pre ? <PreorderBadge state={getPreorderState(pre)} /> : <span className="text-xs text-ink-500">Ativar…</span>}
+                <button type="button" onClick={() => setPreorderBook(b)} className="-my-2 min-h-10 text-left hover:underline">
+                  {pre ? <PreorderBadge state={getPreorderState(pre)} /> : <span className="text-xs text-muted">Ativar…</span>}
                 </button>
               </td>
               <td className="px-4 py-3">
                 <div className="flex justify-end gap-1">
-                  <button type="button" className="rounded p-2 hover:bg-ink-100" title={b.published ? 'Despublicar' : 'Publicar'} aria-label={`${b.published ? 'Despublicar' : 'Publicar'} «${b.title}»`} onClick={() => act(() => api.admin.saveBook({ ...bookToInput(b), published: !b.published }))}>
+                  <button type="button" className="flex h-10 w-10 items-center justify-center rounded hover:bg-surface-alt" title={b.published ? 'Despublicar' : 'Publicar'} aria-label={`${b.published ? 'Despublicar' : 'Publicar'} «${b.title}»`} onClick={() => act(() => api.admin.saveBook({ ...bookToInput(b), published: !b.published }))}>
                     {b.published ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
-                  <Link to={`/admin/livros/${b.id}`} className="rounded p-2 hover:bg-ink-100" aria-label={`Editar «${b.title}»`}>
+                  <Link to={`/admin/livros/${b.id}`} className="flex h-10 w-10 items-center justify-center rounded hover:bg-surface-alt" aria-label={`Editar «${b.title}»`}>
                     <Pencil size={16} />
                   </Link>
-                  <button type="button" className="rounded p-2 text-seal-700 hover:bg-seal-50" aria-label={`Eliminar «${b.title}»`} onClick={() => confirm(`Eliminar «${b.title}» definitivamente?`) && act(() => api.admin.deleteBook(b.id))}>
+                  <button type="button" className="flex h-10 w-10 items-center justify-center rounded text-danger hover:bg-danger-soft" aria-label={`Eliminar «${b.title}»`} onClick={() => confirm(`Eliminar «${b.title}» definitivamente?`) && act(() => api.admin.deleteBook(b.id))}>
                     <Trash2 size={16} />
                   </button>
                 </div>

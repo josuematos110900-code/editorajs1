@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Book, Preorder } from '../types';
-import { effectivePrice, getAvailability, getPreorderState, maxPurchasable, remainingUnits } from './preorder';
+import { effectivePrice, getAvailability, getPreorderState, maxPurchasable, preorderBenefits, remainingUnits } from './preorder';
 
 const now = new Date('2026-10-01T12:00:00Z');
 
@@ -32,6 +32,7 @@ function book(overrides: Partial<Book> = {}): Book {
     description: '',
     pages: 200,
     isbn: null,
+    language: 'Português',
     publisher: 'Editora',
     publicationDate: '2026-11-15',
     formats: ['capa_mole'],
@@ -86,5 +87,14 @@ describe('disponibilidade e preço', () => {
   });
   it('limita a compra às unidades restantes da pré-venda', () => {
     expect(maxPurchasable(book(), preorder({ reserved: 97 }), now)).toBe(3);
+  });
+});
+
+describe('preorderBenefits', () => {
+  const fmt = (n: number) => `${n} Kz`;
+  it('só inclui a poupança quando existe e não duplica benefícios', () => {
+    const list = preorderBenefits(book(), preorder({ benefits: ['Preço especial de pré-venda', 'Marcador exclusivo'] }), fmt);
+    expect(list).toEqual(['Preço especial: poupa 3000 Kz por exemplar', 'Reserva garantida: o seu exemplar fica guardado assim que encomenda', 'Marcador exclusivo']);
+    expect(preorderBenefits(book(), preorder({ specialPrice: 12000 }), fmt)[0]).toMatch(/^Reserva garantida/);
   });
 });

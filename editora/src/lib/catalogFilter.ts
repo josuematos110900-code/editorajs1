@@ -1,4 +1,4 @@
-import type { Author, Book, Preorder } from '../types';
+import type { Author, Book, BookFormat, Preorder } from '../types';
 import { getAvailability, effectivePrice, type Availability } from './preorder';
 
 export type SortKey = 'recentes' | 'antigos' | 'titulo' | 'preco_asc' | 'preco_desc';
@@ -8,8 +8,18 @@ export interface CatalogFilters {
   genero: string; // slug da categoria ou ''
   autor: string; // slug do autor ou ''
   disponibilidade: Availability | '';
+  formato: BookFormat | '';
+  preco: PriceRange | '';
   ordem: SortKey;
 }
+
+export type PriceRange = 'ate-8000' | '8000-12000' | '12000-mais';
+
+export const priceRanges: Record<PriceRange, { label: string; min: number; max: number }> = {
+  'ate-8000': { label: 'Até 8 000 Kz', min: 0, max: 8000 },
+  '8000-12000': { label: '8 001 – 12 000 Kz', min: 8001, max: 12000 },
+  '12000-mais': { label: 'Mais de 12 000 Kz', min: 12001, max: Number.POSITIVE_INFINITY },
+};
 
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -30,6 +40,12 @@ export function filterBooks(
     if (filters.autor && b.authorId !== authorId) return false;
     if (filters.genero && b.categoryId !== categoryId) return false;
     if (filters.disponibilidade && getAvailability(b, ctx.preorderFor(b.id), ctx.now) !== filters.disponibilidade) return false;
+    if (filters.formato && !b.formats.includes(filters.formato)) return false;
+    if (filters.preco) {
+      const range = priceRanges[filters.preco];
+      const p = effectivePrice(b, ctx.preorderFor(b.id), ctx.now);
+      if (!range || p < range.min || p > range.max) return false;
+    }
     if (q) {
       const haystack = normalize([b.title, b.subtitle ?? '', authorName.get(b.authorId) ?? '', b.isbn ?? ''].join(' '));
       if (!q.split(/\s+/).every((term) => haystack.includes(term))) return false;

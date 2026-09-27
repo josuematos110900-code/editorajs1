@@ -9,17 +9,19 @@ export default function Authors() {
   if (loading) return <Spinner />;
 
   return (
-    <div className="container-page py-12 sm:py-16">
+    <div className="page">
       <p className="eyebrow">Quem escreve</p>
-      <h1 className="mt-3 text-4xl font-medium sm:text-5xl">Autores</h1>
+      <h1 className="t-h1 mt-3">Autores</h1>
+      <p className="t-lead mt-4 max-w-prose">As vozes que publicamos — da história local à poesia, da sala de aula ao romance.</p>
       <div className="mt-12">
         {authors.length === 0 ? (
           <EmptyState title="Ainda sem autores publicados" />
         ) : (
-          <div className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 lg:grid-cols-4">
-            {authors.map((a) => (
-              <AuthorCard key={a.id} author={a} bookCount={books.filter((b) => b.authorId === a.id).length} />
-            ))}
+          <div className="grid gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+            {authors.map((a) => {
+              const own = books.filter((b) => b.authorId === a.id).sort((x, y) => (y.publicationDate ?? '').localeCompare(x.publicationDate ?? ''));
+              return <AuthorCard key={a.id} author={a} bookCount={own.length} latestTitle={own[0]?.title} />;
+            })}
           </div>
         )}
       </div>

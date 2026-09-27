@@ -16,17 +16,17 @@ export function Field({ label, error, hint, required, className, children }: Fie
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
     <div className={cn('space-y-1.5', className)}>
-      <label htmlFor={id} className="block text-sm font-medium text-ink-800">
+      <label htmlFor={id} className="block text-sm font-medium text-fg">
         {label}
-        {required && <span className="text-seal-700" aria-hidden="true"> *</span>}
+        {required && <span className="text-primary" aria-hidden="true"> *</span>}
       </label>
       {children({ id, 'aria-invalid': error ? true : undefined, 'aria-describedby': describedBy })}
       {error ? (
-        <p id={`${id}-error`} role="alert" className="text-sm text-seal-700">
+        <p id={`${id}-error`} role="alert" className="text-sm text-primary">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-xs text-ink-500">
+        <p id={`${id}-hint`} className="text-xs text-muted">
           {hint}
         </p>
       ) : null}
@@ -74,8 +74,8 @@ export function SelectField({
 
 export function Checkbox({ label, className, ...props }: { label: ReactNode; className?: string } & InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className={cn('flex cursor-pointer items-start gap-3 text-sm text-ink-700', className)}>
-      <input type="checkbox" className="mt-0.5 h-4 w-4 rounded border-ink-300 accent-seal-700" {...props} />
+    <label className={cn('flex cursor-pointer items-start gap-3 text-sm text-fg/85', className)}>
+      <input type="checkbox" className="mt-0.5 h-4 w-4 rounded border-line-strong accent-[#8C2F1B]" {...props} />
       <span>{label}</span>
     </label>
   );

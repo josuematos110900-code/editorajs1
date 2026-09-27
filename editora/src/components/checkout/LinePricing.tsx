@@ -9,10 +9,10 @@ export function LinePricing({ quantity, unitPrice, listPrice }: { quantity: numb
   const saving = (listPrice - unitPrice) * quantity;
   return (
     <>
-      <span className="block text-ink-500">
+      <span className="block text-muted">
         {quantity} × {formatMoney(listPrice)}
       </span>
-      {saving > 0 && <span className="block text-leaf-700">Pré-venda: {formatMoney(unitPrice)}/un. (−{formatMoney(saving)})</span>}
+      {saving > 0 && <span className="block text-success">Pré-venda: {formatMoney(unitPrice)}/un. (−{formatMoney(saving)})</span>}
     </>
   );
 }

@@ -11,7 +11,7 @@ const ctx = {
   preorderFor: (id: string) => catalog.preorders.find((p) => p.bookId === id),
   now,
 };
-const base: CatalogFilters = { q: '', genero: '', autor: '', disponibilidade: '', ordem: 'recentes' };
+const base: CatalogFilters = { q: '', genero: '', autor: '', disponibilidade: '', formato: '', preco: '', ordem: 'recentes' };
 
 describe('filterBooks', () => {
   it('pesquisa sem acentos por título e autor', () => {
@@ -26,6 +26,13 @@ describe('filterBooks', () => {
       'o-segredo-da-ultima-noite',
       'rios-que-contam-historias',
     ]);
+  });
+
+  it('filtra por formato e por preço efetivo (pré-venda incluída)', () => {
+    expect(filterBooks(books, { ...base, formato: 'ebook' }, ctx).map((b) => b.slug).sort()).toEqual(['a-sala-de-aula-viva', 'mares-de-benguela']);
+    // «Rios» custa 12 000 mas está em pré-venda a 9 900 → entra no intervalo 8 000–12 000.
+    expect(filterBooks(books, { ...base, preco: '8000-12000' }, ctx).map((b) => b.slug)).toContain('rios-que-contam-historias');
+    expect(filterBooks(books, { ...base, preco: 'ate-8000' }, ctx).map((b) => b.slug).sort()).toEqual(['o-pequeno-imbondeiro', 'cartas-ao-planalto'].sort());
   });
 
   it('ordena por lançamento mais recente', () => {

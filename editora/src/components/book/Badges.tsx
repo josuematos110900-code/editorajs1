@@ -1,33 +1,33 @@
-import { cn } from '../../lib/cn';
 import { availabilityLabels, preorderStateLabels, type Availability } from '../../lib/preorder';
 import type { PreorderState } from '../../types';
+import { Badge, type BadgeTone } from '../ui/Badge';
 
-const preorderStyles: Record<PreorderState, string> = {
-  em_breve: 'bg-gilt-100 text-gilt-600',
-  aberta: 'bg-seal-700 text-white',
-  encerrada: 'bg-ink-100 text-ink-600',
-  esgotada: 'bg-ink-900 text-paper-50',
+const preorderTones: Record<PreorderState, BadgeTone> = {
+  em_breve: 'warning',
+  aberta: 'primary',
+  encerrada: 'neutral',
+  esgotada: 'dark',
 };
 
 export function PreorderBadge({ state, className }: { state: PreorderState; className?: string }) {
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', preorderStyles[state], className)}>
-      Pré-venda · {preorderStateLabels[state]}
-    </span>
+    <Badge tone={preorderTones[state]} className={className} dot={state === 'aberta'}>
+      Pré-venda {preorderStateLabels[state].toLowerCase()}
+    </Badge>
   );
 }
 
-const availabilityStyles: Record<Availability, string> = {
-  pre_venda: 'bg-seal-700 text-white',
-  disponivel: 'bg-leaf-100 text-leaf-800',
-  esgotado: 'bg-ink-100 text-ink-600',
-  brevemente: 'bg-gilt-100 text-gilt-600',
+const availabilityTones: Record<Availability, BadgeTone> = {
+  pre_venda: 'primary',
+  disponivel: 'success',
+  esgotado: 'neutral',
+  brevemente: 'warning',
 };
 
 export function AvailabilityBadge({ availability, className }: { availability: Availability; className?: string }) {
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', availabilityStyles[availability], className)}>
+    <Badge tone={availabilityTones[availability]} className={className} dot={availability === 'pre_venda'}>
       {availabilityLabels[availability]}
-    </span>
+    </Badge>
   );
 }

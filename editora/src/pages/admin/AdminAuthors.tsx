@@ -33,18 +33,18 @@ export default function AdminAuthors() {
         {data.authors.map((a) => {
           const count = data.books.filter((b) => b.authorId === a.id).length;
           return (
-            <li key={a.id} className="flex gap-4 rounded-lg border border-ink-100 bg-white p-4">
+            <li key={a.id} className="flex gap-4 rounded-card border border-line bg-surface p-4">
               <AuthorPortrait author={a} className="w-16 shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{a.name}</p>
-                <p className="text-sm text-ink-500">{count} {count === 1 ? 'livro' : 'livros'}</p>
-                <p className="mt-1 line-clamp-2 text-sm text-ink-600">{a.bio}</p>
+                <p className="text-sm text-muted">{count} {count === 1 ? 'livro' : 'livros'}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-muted">{a.bio}</p>
               </div>
               <div className="flex flex-col gap-1">
-                <button type="button" className="rounded p-2 hover:bg-ink-100" aria-label={`Editar ${a.name}`} onClick={() => setEditing(a)}><Pencil size={16} /></button>
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded hover:bg-surface-alt" aria-label={`Editar ${a.name}`} onClick={() => setEditing(a)}><Pencil size={16} /></button>
                 <button
                   type="button"
-                  className="rounded p-2 text-seal-700 hover:bg-seal-50"
+                  className="flex h-10 w-10 items-center justify-center rounded text-danger hover:bg-danger-soft"
                   aria-label={`Eliminar ${a.name}`}
                   onClick={async () => {
                     if (!confirm(`Eliminar ${a.name}?`)) return;
@@ -135,8 +135,8 @@ function AuthorForm({ catalog, author, onSaved }: { catalog: Catalog; author?: A
         <TextField label="URL amigável (slug)" value={v.slug} onChange={(e) => { setSlugTouched(true); setV((s) => ({ ...s, slug: slugify(e.target.value) })); }} error={errors.slug} hint={`/autores/${v.slug || '…'}`} required />
         <TextAreaField label="Biografia" value={v.bio} onChange={(e) => setV((s) => ({ ...s, bio: e.target.value }))} error={errors.bio} required />
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-ink-800">Livros associados</legend>
-          <div className="grid max-h-48 gap-2 overflow-y-auto rounded-md border border-ink-100 p-3 sm:grid-cols-2">
+          <legend className="mb-2 text-sm font-medium text-fg">Livros associados</legend>
+          <div className="grid max-h-48 gap-2 overflow-y-auto rounded-md border border-line p-3 sm:grid-cols-2">
             {catalog.books.map((b) => {
               const own = author && b.authorId === author.id;
               return (
@@ -157,7 +157,7 @@ function AuthorForm({ catalog, author, onSaved }: { catalog: Catalog; author?: A
               );
             })}
           </div>
-          <p className="mt-1 text-xs text-ink-500">Marcar um livro reatribui-o a este autor. Para remover, escolha outro autor no livro.</p>
+          <p className="mt-1 text-xs text-muted">Marcar um livro reatribui-o a este autor. Para remover, escolha outro autor no livro.</p>
         </fieldset>
         {error && <Notice tone="error">{error}</Notice>}
         <Button type="submit" loading={saving}>Guardar autor</Button>

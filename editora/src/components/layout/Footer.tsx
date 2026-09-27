@@ -4,26 +4,28 @@ import { demoMode } from '../../data';
 import { NewsletterForm } from '../NewsletterForm';
 import { Logo } from './Header';
 
-export function Footer() {
+/** showNewsletter=false na Home, que já tem a sua própria secção de newsletter. */
+export function Footer({ showNewsletter = true }: { showNewsletter?: boolean }) {
   const year = new Date().getFullYear();
   return (
-    <footer className="mt-24 border-t border-ink-100 bg-ink-950 text-paper-200">
+    <footer className="mt-24 bg-ink-950 text-paper-200 sm:mt-32">
       <div className="container-page grid gap-12 py-16 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="max-w-sm">
-          <div className="rounded-md bg-paper px-3 py-2 inline-block">
-            <Logo />
-          </div>
+          <Logo inverted />
           <p className="mt-5 text-sm leading-relaxed text-ink-300">{site.description}</p>
-          <div className="mt-6">
-            <p className="mb-2 text-sm font-semibold text-paper-50">{site.texts.newsletterTitle}</p>
+          {showNewsletter && (
+          <div className="mt-8">
+            <p className="mb-3 text-sm text-ink-300">{site.texts.newsletterBody}</p>
             <NewsletterForm tone="dark" />
           </div>
+          )}
         </div>
-        <FooterColumn title="Livraria">
+        <FooterColumn title="Editora">
           <FooterLink to="/pre-venda">Pré-venda</FooterLink>
           <FooterLink to="/livros">Catálogo</FooterLink>
           <FooterLink to="/autores">Autores</FooterLink>
-          <FooterLink to="/carrinho">Carrinho</FooterLink>
+          <FooterLink to="/sobre">Sobre nós</FooterLink>
+          <FooterLink to="/contacto">Contacto</FooterLink>
           <FooterLink to="/conta">A minha conta</FooterLink>
         </FooterColumn>
         <FooterColumn title="Informações">

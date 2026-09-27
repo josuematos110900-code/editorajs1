@@ -19,9 +19,9 @@ export default function SignIn({ mode = 'entrar' }: { mode?: 'entrar' | 'regista
   return (
     <div className="container-page flex justify-center py-12 sm:py-20">
       <div className="w-full max-w-md">
-        <h1 className="text-center text-4xl font-medium">{mode === 'entrar' ? 'Bem-vindo de volta' : 'Criar conta'}</h1>
-        <p className="mt-3 text-center text-ink-600">Acompanhe encomendas e pré-vendas na sua conta.</p>
-        <div className="mt-8 rounded-xl border border-ink-100 bg-white p-6 sm:p-8">
+        <h1 className="t-h1 text-center">{mode === 'entrar' ? 'Bem-vindo de volta' : 'Criar conta'}</h1>
+        <p className="mt-3 text-center text-muted">Acompanhe encomendas e pré-vendas na sua conta.</p>
+        <div className="mt-8 rounded-card border border-line bg-surface p-6 sm:p-8">
           {/* Ao entrar, o perfil muda e o <Navigate> acima redireciona. */}
           <AuthForm initialMode={mode} />
         </div>

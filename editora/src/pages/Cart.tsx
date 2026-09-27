@@ -23,8 +23,8 @@ export default function Cart() {
   const totals = computeTotals(items, undefined);
 
   return (
-    <div className="container-page py-12 sm:py-16">
-      <h1 className="text-4xl font-medium">Carrinho</h1>
+    <div className="page">
+      <h1 className="t-h1">Carrinho</h1>
       {unavailable.length > 0 && (
         <Notice tone="error" className="mt-6" title="Alguns livros deixaram de estar disponíveis">
           Foram retirados do resumo e não serão incluídos na encomenda.{' '}
@@ -41,16 +41,16 @@ export default function Cart() {
         </div>
       ) : (
         <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_22rem]">
-          <ul className="divide-y divide-ink-100 border-y border-ink-100">
+          <ul className="divide-y divide-line border-y border-line">
             {items.map((item) => (
               <li key={item.book.id} className="grid grid-cols-[5rem_1fr] gap-5 py-6 sm:grid-cols-[6rem_1fr_auto]">
                 <BookCover book={item.book} size="sm" />
                 <div className="min-w-0">
-                  <Link to={`/${item.isPreorder ? 'pre-venda' : 'livros'}/${item.book.slug}`} className="font-display text-lg font-medium hover:text-seal-700">
+                  <Link to={`/${item.isPreorder ? 'pre-venda' : 'livros'}/${item.book.slug}`} className="font-display text-lg font-medium hover:text-primary">
                     {item.book.title}
                   </Link>
-                  <p className="text-sm text-ink-500">{authorById(item.book.authorId)?.name}</p>
-                  {item.isPreorder && <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-seal-700">Pré-venda</p>}
+                  <p className="text-sm text-muted">{authorById(item.book.authorId)?.name}</p>
+                  {item.isPreorder && <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-primary">Pré-venda</p>}
                   <p className="mt-2 text-sm">
                     <LinePricing quantity={item.quantity} unitPrice={item.unitPrice} listPrice={item.listPrice} />
                   </p>
@@ -63,7 +63,7 @@ export default function Cart() {
                     <QuantityControl item={item} onChange={(q) => setQuantity(item.book.id, q)} />
                   </div>
                   <p className="font-semibold">{formatMoney(lineTotal(item))}</p>
-                  <button type="button" onClick={() => remove(item.book.id)} className="flex items-center gap-1 text-sm text-ink-500 hover:text-seal-700">
+                  <button type="button" onClick={() => remove(item.book.id)} className="-my-2 flex min-h-11 items-center gap-1 t-small text-muted hover:text-danger">
                     <Trash2 size={15} aria-hidden="true" /> Remover <span className="sr-only">«{item.book.title}»</span>
                   </button>
                 </div>
@@ -73,7 +73,7 @@ export default function Cart() {
           <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
             <OrderSummary totals={totals} shippingPending />
             <ButtonLink to="/checkout" size="lg" className="w-full">
-              Finalizar compra
+              Continuar para pagamento
             </ButtonLink>
             <ButtonLink to="/livros" variant="ghost" className="w-full">
               Continuar a comprar
@@ -87,12 +87,12 @@ export default function Cart() {
 
 function QuantityControl({ item, onChange }: { item: { quantity: number; max: number; book: { title: string } }; onChange: (q: number) => void }) {
   return (
-    <div className="flex h-10 items-center rounded-md border border-ink-200 bg-white" role="group" aria-label={`Quantidade de «${item.book.title}»`}>
-      <button type="button" className="h-full px-2.5 disabled:opacity-40" onClick={() => onChange(item.quantity - 1)} aria-label="Diminuir">
+    <div className="flex h-11 items-center rounded-md border border-line bg-surface" role="group" aria-label={`Quantidade de «${item.book.title}»`}>
+      <button type="button" className="flex h-full w-11 items-center justify-center disabled:opacity-40" onClick={() => onChange(item.quantity - 1)} aria-label="Diminuir">
         <Minus size={14} />
       </button>
       <span className="w-7 text-center text-sm tabular-nums">{item.quantity}</span>
-      <button type="button" className="h-full px-2.5 disabled:opacity-40" disabled={item.quantity >= item.max} onClick={() => onChange(item.quantity + 1)} aria-label="Aumentar">
+      <button type="button" className="flex h-full w-11 items-center justify-center disabled:opacity-40" disabled={item.quantity >= item.max} onClick={() => onChange(item.quantity + 1)} aria-label="Aumentar">
         <Plus size={14} />
       </button>
     </div>

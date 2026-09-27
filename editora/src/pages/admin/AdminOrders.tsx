@@ -58,7 +58,7 @@ export default function AdminOrders() {
               type="button"
               aria-pressed={status === f}
               onClick={() => setParam('estado', f === 'todas' ? null : f)}
-              className={cn('shrink-0 rounded-full border px-3 py-1.5 text-sm', status === f ? 'border-ink-950 bg-ink-950 text-paper-50' : 'border-ink-200 bg-white text-ink-700 hover:border-ink-400')}
+              className={cn('min-h-10 shrink-0 rounded-full border px-3.5 text-sm', status === f ? 'border-secondary bg-secondary text-background' : 'border-line bg-surface text-fg/85 hover:border-line-strong')}
             >
               {f === 'todas' ? 'Todas' : orderStatusLabels[f]} <span className="opacity-60">{count}</span>
             </button>
@@ -73,16 +73,16 @@ export default function AdminOrders() {
       ) : (
         <DataTable caption="Encomendas" head={['Número', 'Data', 'Cliente', 'Estado', 'Pagamento', 'Total']}>
           {visible.map((o) => (
-            <tr key={o.id} className="hover:bg-paper-50">
+            <tr key={o.id} className="hover:bg-background">
               <td className="px-4 py-3">
                 <button type="button" onClick={() => setParam('id', o.id)} className="font-medium underline-offset-2 hover:underline">
                   {o.number}
                 </button>
               </td>
-              <td className="px-4 py-3 text-ink-600">{formatShortDate(o.createdAt)}</td>
+              <td className="px-4 py-3 text-muted">{formatShortDate(o.createdAt)}</td>
               <td className="px-4 py-3">
                 {o.customerName}
-                <p className="text-xs text-ink-500">{o.customerEmail}</p>
+                <p className="text-xs text-muted">{o.customerEmail}</p>
               </td>
               <td className="px-4 py-3"><OrderStatusBadge status={o.status} /></td>
               <td className="px-4 py-3"><PaymentStatusText status={o.payment.status} /></td>
@@ -147,7 +147,7 @@ function OrderDetail({ order, onChanged }: { order: Order; onChanged: () => void
       <section>
         <h3 className="mb-2 font-display text-lg">Atualizar estado</h3>
         {next.length === 0 ? (
-          <p className="text-ink-500">Encomenda fechada — sem mudanças de estado possíveis.</p>
+          <p className="text-muted">Encomenda fechada — sem mudanças de estado possíveis.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {next.map((s) => (
@@ -166,7 +166,7 @@ function OrderDetail({ order, onChanged }: { order: Order; onChanged: () => void
       </section>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <section className="rounded-md border border-ink-100 p-4">
+        <section className="rounded-md border border-line p-4">
           <h3 className="mb-2 font-display text-lg">Cliente e entrega</h3>
           <p className="font-medium">{order.customerName}</p>
           <p>
@@ -174,7 +174,7 @@ function OrderDetail({ order, onChanged }: { order: Order; onChanged: () => void
           </p>
           <p className="mt-3 font-medium">{delivery?.label ?? order.deliveryMethod}</p>
           {order.shippingAddress.line1 && (
-            <address className="not-italic text-ink-600">
+            <address className="not-italic text-muted">
               {order.shippingAddress.line1}
               {order.shippingAddress.line2 && `, ${order.shippingAddress.line2}`}
               <br />
@@ -182,14 +182,14 @@ function OrderDetail({ order, onChanged }: { order: Order; onChanged: () => void
             </address>
           )}
         </section>
-        <section className="rounded-md border border-ink-100 p-4">
+        <section className="rounded-md border border-line p-4">
           <h3 className="mb-2 font-display text-lg">Pagamento</h3>
           <dl className="space-y-1">
-            <div className="flex justify-between"><dt className="text-ink-500">Método</dt><dd>{payment?.label ?? order.payment.method}</dd></div>
-            <div className="flex justify-between"><dt className="text-ink-500">Estado</dt><dd><PaymentStatusText status={order.payment.status} /></dd></div>
-            <div className="flex justify-between"><dt className="text-ink-500">Montante</dt><dd>{formatMoney(order.payment.amount)}</dd></div>
-            <div className="flex justify-between"><dt className="text-ink-500">Referência</dt><dd className="font-mono text-xs">{order.payment.providerReference ?? order.number}</dd></div>
-            <div className="flex justify-between"><dt className="text-ink-500">Atualizado</dt><dd>{formatShortDate(order.payment.updatedAt)}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted">Método</dt><dd>{payment?.label ?? order.payment.method}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted">Estado</dt><dd><PaymentStatusText status={order.payment.status} /></dd></div>
+            <div className="flex justify-between"><dt className="text-muted">Montante</dt><dd>{formatMoney(order.payment.amount)}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted">Referência</dt><dd className="font-mono text-xs">{order.payment.providerReference ?? order.number}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted">Atualizado</dt><dd>{formatShortDate(order.payment.updatedAt)}</dd></div>
           </dl>
           {paymentActions.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -205,20 +205,20 @@ function OrderDetail({ order, onChanged }: { order: Order; onChanged: () => void
 
       <section>
         <h3 className="mb-2 font-display text-lg">Produtos</h3>
-        <ul className="divide-y divide-ink-100 rounded-md border border-ink-100">
+        <ul className="divide-y divide-line rounded-md border border-line">
           {order.items.map((i) => (
             <li key={i.id} className="flex justify-between gap-4 px-4 py-2.5">
               <span>
                 {i.title}
-                {i.isPreorder && <span className="ml-2 text-xs font-semibold text-seal-700">PRÉ-VENDA</span>}
+                {i.isPreorder && <span className="ml-2 text-xs font-semibold text-primary">PRÉ-VENDA</span>}
                 <LinePricing quantity={i.quantity} unitPrice={i.unitPrice} listPrice={i.listPrice} />
               </span>
               <span className="tabular-nums">{formatMoney(lineTotal(i))}</span>
             </li>
           ))}
-          <li className="flex justify-between px-4 py-2.5 text-ink-600"><span>Subtotal</span><span>{formatMoney(order.subtotal)}</span></li>
-          <li className="flex justify-between px-4 py-2.5 text-ink-600"><span>Descontos</span><span>− {formatMoney(order.discount)}</span></li>
-          <li className="flex justify-between px-4 py-2.5 text-ink-600"><span>Entrega</span><span>{formatMoney(order.shippingCost)}</span></li>
+          <li className="flex justify-between px-4 py-2.5 text-muted"><span>Subtotal</span><span>{formatMoney(order.subtotal)}</span></li>
+          <li className="flex justify-between px-4 py-2.5 text-muted"><span>Descontos</span><span>− {formatMoney(order.discount)}</span></li>
+          <li className="flex justify-between px-4 py-2.5 text-muted"><span>Entrega</span><span>{formatMoney(order.shippingCost)}</span></li>
           <li className="flex justify-between px-4 py-2.5 font-semibold"><span>Total</span><span>{formatMoney(order.total)}</span></li>
         </ul>
       </section>

@@ -51,3 +51,43 @@ export function computeDashboard(orders: Order[], preorders: Preorder[], _books:
     revenueByDay,
   };
 }
+
+export interface DashboardAlert {
+  id: string;
+  tone: 'warning' | 'error';
+  message: string;
+  to: string;
+}
+
+/** Alertas acionáveis para a equipa — só o que pede decisão hoje. */
+export function computeAlerts(orders: Order[], preorders: Preorder[], books: Book[], now: Date = new Date()): DashboardAlert[] {
+  const alerts: DashboardAlert[] = [];
+  const title = (id: string) => books.find((b) => b.id === id)?.title ?? 'Livro';
+
+  const stale = orders.filter((o) => o.status === 'pendente' && now.getTime() - new Date(o.createdAt).getTime() > 48 * 3_600_000);
+  if (stale.length) alerts.push({ id: 'pagamentos', tone: 'warning', message: `${stale.length} encomenda(s) aguardam pagamento há mais de 48 horas.`, to: '/admin/encomendas?estado=pendente' });
+
+  const toShip = orders.filter((o) => o.status === 'pagamento_confirmado').length;
+  if (toShip) alerts.push({ id: 'preparar', tone: 'warning', message: `${toShip} encomenda(s) paga(s) por preparar.`, to: '/admin/encomendas?estado=pagamento_confirmado' });
+
+  for (const p of preorders) {
+    if (!p.enabled) continue;
+    const endsIn = new Date(p.endsAt).getTime() - now.getTime();
+    if (new Date(p.startsAt) <= now && endsIn > 0 && endsIn < 3 * 86_400_000) {
+      alerts.push({ id: `fim-${p.id}`, tone: 'warning', message: `A pré-venda de «${title(p.bookId)}» termina em menos de 3 dias.`, to: '/admin/pre-vendas' });
+    }
+    if (p.unitLimit && p.reserved < p.unitLimit && p.reserved / p.unitLimit >= 0.9) {
+      alerts.push({ id: `quase-${p.id}`, tone: 'warning', message: `«${title(p.bookId)}»: ${p.reserved} de ${p.unitLimit} unidades de pré-venda reservadas.`, to: '/admin/pre-vendas' });
+    }
+  }
+
+  const today = now.toISOString().slice(0, 10);
+  for (const b of books) {
+    const released = !b.publicationDate || b.publicationDate <= today;
+    const inPreorder = preorders.some((p) => p.bookId === b.id && p.enabled && new Date(p.endsAt) > now);
+    if (b.published && released && !inPreorder && b.stock <= 5) {
+      alerts.push({ id: `stock-${b.id}`, tone: b.stock === 0 ? 'error' : 'warning', message: b.stock === 0 ? `«${b.title}» está esgotado.` : `«${b.title}» tem só ${b.stock} exemplar(es) em stock.`, to: `/admin/livros/${b.id}` });
+    }
+  }
+  return alerts;
+}

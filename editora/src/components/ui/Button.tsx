@@ -3,23 +3,31 @@ import { Link, type LinkProps } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+/**
+ * Hierarquia de botões:
+ * - primary: a ação principal de cada ecrã (Comprar, Reservar, Finalizar compra) — no máximo uma por área.
+ * - secondary: alternativa (Adicionar ao carrinho, Explorar catálogo).
+ * - tertiary: ações discretas em texto (Ver todos, Saber mais).
+ * - ghost: utilitários de interface (painel, filtros). danger: ações destrutivas.
+ */
+type Variant = 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap';
+  'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap select-none';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-ink-950 text-paper-50 hover:bg-seal-700',
-  secondary: 'border border-ink-900 text-ink-950 hover:bg-ink-950 hover:text-paper-50',
-  ghost: 'text-ink-700 hover:bg-ink-100 hover:text-ink-950',
-  danger: 'bg-seal-700 text-white hover:bg-seal-800',
+  primary: 'bg-primary text-white hover:bg-primary-hover active:bg-primary-hover',
+  secondary: 'border border-secondary/80 bg-transparent text-fg hover:bg-secondary hover:text-background',
+  tertiary: 'text-fg underline decoration-line-strong underline-offset-4 hover:text-primary hover:decoration-primary !px-0',
+  ghost: 'text-fg/85 hover:bg-surface-alt hover:text-fg',
+  danger: 'border border-danger/40 text-danger hover:bg-danger hover:text-white',
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'h-9 px-3 text-sm',
-  md: 'h-11 px-5 text-[15px]',
-  lg: 'h-12 px-7 text-base',
+  sm: 'min-h-10 px-3.5 text-sm',
+  md: 'min-h-11 px-5 text-[15px]',
+  lg: 'min-h-12 px-7 text-base',
 };
 
 export function buttonClasses(variant: Variant = 'primary', size: Size = 'md', className?: string) {

@@ -36,7 +36,7 @@ export default function AdminNewsletter() {
           {data.map((s) => (
             <tr key={s.id}>
               <td className="px-4 py-3">{s.email}</td>
-              <td className="px-4 py-3 text-ink-600">{formatShortDate(s.createdAt)}</td>
+              <td className="px-4 py-3 text-muted">{formatShortDate(s.createdAt)}</td>
             </tr>
           ))}
         </DataTable>

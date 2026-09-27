@@ -138,7 +138,7 @@ export default function Checkout() {
             <BookCover book={i.book} size="xs" />
           </div>
           <div className="min-w-0 flex-1 text-sm">
-            <p className="font-medium leading-snug text-ink-900">{i.book.title}</p>
+            <p className="font-medium leading-snug text-fg">{i.book.title}</p>
             <LinePricing quantity={i.quantity} unitPrice={i.unitPrice} listPrice={i.listPrice} />
           </div>
           <p className="text-sm font-medium">{formatMoney(lineTotal(i))}</p>
@@ -148,17 +148,17 @@ export default function Checkout() {
   );
 
   return (
-    <div className="container-page py-10 sm:py-14">
-      <Link to="/carrinho" className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-950">
+    <div className="page">
+      <Link to="/carrinho" className="-my-2 inline-flex min-h-11 items-center gap-1 t-small text-muted hover:text-fg">
         <ArrowLeft size={15} aria-hidden="true" /> Voltar ao carrinho
       </Link>
-      <h1 className="mt-4 text-4xl font-medium">Finalizar compra</h1>
+      <h1 className="t-h1 mt-4">Finalizar compra</h1>
       <ol className="mt-6 flex gap-6 text-sm" aria-label="Passos do checkout">
         {[
           ['dados', '1. Dados e entrega'],
-          ['revisao', '2. Rever e pagar'],
+          ['revisao', '2. Revisão e pagamento'],
         ].map(([key, label]) => (
-          <li key={key} aria-current={step === key ? 'step' : undefined} className={cn('border-b-2 pb-2', step === key ? 'border-ink-950 font-semibold text-ink-950' : 'border-transparent text-ink-500')}>
+          <li key={key} aria-current={step === key ? 'step' : undefined} className={cn('border-b-2 pb-2', step === key ? 'border-secondary font-semibold text-fg' : 'border-transparent text-muted')}>
             {label}
           </li>
         ))}
@@ -167,9 +167,9 @@ export default function Checkout() {
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_24rem]">
         <div>
           {!profile ? (
-            <section className="rounded-xl border border-ink-100 bg-white p-6 sm:p-8" aria-labelledby="checkout-conta">
-              <h2 id="checkout-conta" className="text-2xl font-medium">Entre para continuar</h2>
-              <p className="mb-6 mt-2 text-sm text-ink-600">A conta permite acompanhar a encomenda e a pré-venda até à entrega. Demora menos de um minuto.</p>
+            <section className="rounded-card border border-line bg-surface p-6 sm:p-8" aria-labelledby="checkout-conta">
+              <h2 id="checkout-conta" className="t-h3">Entre para continuar</h2>
+              <p className="mb-6 mt-2 text-sm text-muted">A conta permite acompanhar a encomenda e a pré-venda até à entrega. Demora menos de um minuto.</p>
               <AuthForm initialMode="registar" />
             </section>
           ) : step === 'dados' ? (
@@ -189,14 +189,14 @@ export default function Checkout() {
                   {deliveryMethods.map((m) => {
                     const cost = m.freeFrom !== null && totals.subtotal - totals.discount >= m.freeFrom ? 0 : m.cost;
                     return (
-                      <label key={m.id} className={cn('flex cursor-pointer items-start gap-3 rounded-lg border bg-white p-4 transition', form.deliveryMethod === m.id ? 'border-ink-950 ring-1 ring-ink-950' : 'border-ink-200 hover:border-ink-400')}>
-                        <input type="radio" name="delivery" value={m.id} checked={form.deliveryMethod === m.id} onChange={set('deliveryMethod')} className="mt-1 accent-seal-700" />
+                      <label key={m.id} className={cn('flex cursor-pointer items-start gap-3 rounded-card border bg-surface p-4 transition', form.deliveryMethod === m.id ? 'border-secondary ring-1 ring-secondary' : 'border-line hover:border-line-strong')}>
+                        <input type="radio" name="delivery" value={m.id} checked={form.deliveryMethod === m.id} onChange={set('deliveryMethod')} className="mt-1 accent-[#8C2F1B]" />
                         <span className="flex-1">
-                          <span className="flex justify-between gap-4 font-medium text-ink-900">
+                          <span className="flex justify-between gap-4 font-medium text-fg">
                             {m.label}
                             <span>{cost === 0 ? 'Grátis' : formatMoney(cost)}</span>
                           </span>
-                          <span className="mt-0.5 block text-sm text-ink-500">
+                          <span className="mt-0.5 block text-sm text-muted">
                             {m.description}
                             {m.freeFrom !== null && cost > 0 && ` Grátis a partir de ${formatMoney(m.freeFrom)}.`}
                           </span>
@@ -206,7 +206,7 @@ export default function Checkout() {
                   })}
                 </div>
                 {items.some((i) => i.isPreorder) && (
-                  <p className="mt-3 text-sm text-ink-600">Os livros em pré-venda são enviados a partir da data prevista em cada livro.</p>
+                  <p className="mt-3 text-sm text-muted">Os livros em pré-venda são enviados a partir da data prevista em cada livro.</p>
                 )}
               </fieldset>
 
@@ -233,17 +233,17 @@ export default function Checkout() {
                 <legend className="mb-4 font-display text-2xl font-medium">Pagamento</legend>
                 <div className="grid gap-3" role="radiogroup">
                   {enabledPayments.map((m) => (
-                    <label key={m.id} className={cn('flex cursor-pointer items-start gap-3 rounded-lg border bg-white p-4 transition', form.paymentMethod === m.id ? 'border-ink-950 ring-1 ring-ink-950' : 'border-ink-200 hover:border-ink-400')}>
-                      <input type="radio" name="payment" value={m.id} checked={form.paymentMethod === m.id} onChange={set('paymentMethod')} className="mt-1 accent-seal-700" />
+                    <label key={m.id} className={cn('flex cursor-pointer items-start gap-3 rounded-card border bg-surface p-4 transition', form.paymentMethod === m.id ? 'border-secondary ring-1 ring-secondary' : 'border-line hover:border-line-strong')}>
+                      <input type="radio" name="payment" value={m.id} checked={form.paymentMethod === m.id} onChange={set('paymentMethod')} className="mt-1 accent-[#8C2F1B]" />
                       <span>
-                        <span className="block font-medium text-ink-900">{m.label}</span>
-                        <span className="mt-0.5 block text-sm text-ink-500">{m.description}</span>
+                        <span className="block font-medium text-fg">{m.label}</span>
+                        <span className="mt-0.5 block text-sm text-muted">{m.description}</span>
                       </span>
                     </label>
                   ))}
                 </div>
-                {errors.paymentMethod && <p className="mt-2 text-sm text-seal-700" role="alert">{errors.paymentMethod}</p>}
-                <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-500">
+                {errors.paymentMethod && <p className="mt-2 text-sm text-primary" role="alert">{errors.paymentMethod}</p>}
+                <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
                   <Lock size={13} aria-hidden="true" /> Nunca guardamos dados de cartão bancário.
                 </p>
               </fieldset>
@@ -261,58 +261,51 @@ export default function Checkout() {
                     </>
                   }
                 />
-                {errors.acceptTerms && <p className="mt-2 text-sm text-seal-700" role="alert">{errors.acceptTerms}</p>}
+                {errors.acceptTerms && <p className="mt-2 text-sm text-primary" role="alert">{errors.acceptTerms}</p>}
               </div>
 
               {Object.keys(errors).length > 0 && <Notice tone="error">Reveja os campos assinalados.</Notice>}
 
               <Button type="submit" size="lg" className="w-full sm:w-auto">
-                Rever encomenda
+                Continuar
               </Button>
             </form>
           ) : (
             validated && (
-              <ReviewStep
-                input={validated}
-                onEdit={() => setStep('dados')}
-                onConfirm={onConfirm}
-                submitting={submitting}
-                error={submitError}
-                total={totals.total}
-              />
+              <ReviewStep input={validated} onEdit={() => setStep('dados')} />
             )
           )}
         </div>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start" aria-label="Resumo da encomenda">
+        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start" aria-label="Resumo da encomenda">
           <OrderSummary totals={totals}>{summaryItems}</OrderSummary>
+          {step === 'revisao' && validated && (
+            <>
+              {submitError && <Notice tone="error" title="Não foi possível concluir a encomenda">{submitError}</Notice>}
+              <Button size="lg" className="w-full" onClick={onConfirm} loading={submitting}>
+                Finalizar compra · {formatMoney(totals.total)}
+              </Button>
+              <p className="flex items-start justify-center gap-1.5 text-center text-xs text-muted">
+                <Lock size={12} className="mt-0.5 shrink-0" aria-hidden="true" /> O total é confirmado pelo servidor com os preços e o stock em vigor.
+              </p>
+            </>
+          )}
         </aside>
       </div>
     </div>
   );
 }
 
-function ReviewStep({
-  input,
-  onEdit,
-  onConfirm,
-  submitting,
-  error,
-  total,
-}: {
-  input: CheckoutInput;
-  onEdit: () => void;
-  onConfirm: () => void;
-  submitting: boolean;
-  error: string;
-  total: number;
-}) {
+function ReviewStep({ input, onEdit }: { input: CheckoutInput; onEdit: () => void }) {
   const delivery = deliveryMethods.find((m) => m.id === input.deliveryMethod);
   const payment = paymentMethods.find((m) => m.id === input.paymentMethod);
   return (
     <section aria-labelledby="revisao-titulo" className="space-y-6">
-      <h2 id="revisao-titulo" className="text-2xl font-medium">Confirme a sua encomenda</h2>
-      <dl className="divide-y divide-ink-100 rounded-xl border border-ink-100 bg-white">
+      <div className="flex items-end justify-between gap-4">
+        <h2 id="revisao-titulo" className="t-h3">Confirme os dados</h2>
+        <Button variant="tertiary" size="sm" onClick={onEdit}>Alterar dados</Button>
+      </div>
+      <dl className="card divide-y divide-line">
         <ReviewRow label="Cliente">
           {input.customer.fullName}
           <br />
@@ -333,19 +326,11 @@ function ReviewStep({
         </ReviewRow>
         <ReviewRow label="Pagamento">{payment?.label}</ReviewRow>
       </dl>
-      <Button variant="ghost" size="sm" onClick={onEdit}>
-        Alterar dados
-      </Button>
-      {error && <Notice tone="error" title="Não foi possível concluir a encomenda">{error}</Notice>}
-      <div className="rounded-xl bg-paper-200 p-5 text-sm text-ink-700">
+      <p className="rounded-card bg-surface-alt p-5 t-small text-fg/85">
         {payment?.kind === 'online'
-          ? 'Ao confirmar, será encaminhado para a página segura do nosso parceiro de pagamentos.'
-          : 'Ao confirmar, recebe de imediato as instruções de pagamento. A encomenda fica reservada enquanto aguardamos o pagamento.'}
-      </div>
-      <Button size="lg" className="w-full" onClick={onConfirm} loading={submitting}>
-        Confirmar encomenda · {formatMoney(total)}
-      </Button>
-      <p className="text-center text-xs text-ink-500">O total final é confirmado pelo servidor com os preços e o stock em vigor.</p>
+          ? 'Ao finalizar, será encaminhado para a página segura do nosso parceiro de pagamentos.'
+          : 'Ao finalizar, recebe de imediato as instruções de pagamento. Os exemplares ficam reservados enquanto aguardamos o pagamento.'}
+      </p>
     </section>
   );
 }
@@ -353,8 +338,8 @@ function ReviewStep({
 function ReviewRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-1 px-5 py-4 sm:grid-cols-[8rem_1fr]">
-      <dt className="text-sm text-ink-500">{label}</dt>
-      <dd className="text-sm text-ink-900">{children}</dd>
+      <dt className="text-sm text-muted">{label}</dt>
+      <dd className="text-sm text-fg">{children}</dd>
     </div>
   );
 }

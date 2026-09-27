@@ -62,21 +62,21 @@ export default function AdminPreorders() {
               <tr key={p.id}>
                 <td className="px-4 py-3 font-medium">{title(p.bookId)}</td>
                 <td className="px-4 py-3"><PreorderBadge state={state} /></td>
-                <td className="px-4 py-3 text-ink-600">{formatShortDate(p.startsAt)} → {formatShortDate(p.endsAt)}</td>
+                <td className="px-4 py-3 text-muted">{formatShortDate(p.startsAt)} → {formatShortDate(p.endsAt)}</td>
                 <td className="px-4 py-3 tabular-nums">{formatMoney(p.specialPrice)}</td>
                 <td className="px-4 py-3 tabular-nums">
                   {p.reserved}
-                  {p.unitLimit !== null && <span className="text-ink-500"> / {p.unitLimit}</span>}
+                  {p.unitLimit !== null && <span className="text-muted"> / {p.unitLimit}</span>}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="sm" onClick={() => act(() => api.admin.savePreorder({ ...p, enabled: !p.enabled }))}>
                       {p.enabled ? 'Fechar' : 'Abrir'}
                     </Button>
-                    <button type="button" className="rounded p-2 hover:bg-ink-100" aria-label={`Editar pré-venda de «${title(p.bookId)}»`} onClick={() => setEditing(p)}>
+                    <button type="button" className="flex h-10 w-10 items-center justify-center rounded hover:bg-surface-alt" aria-label={`Editar pré-venda de «${title(p.bookId)}»`} onClick={() => setEditing(p)}>
                       <Pencil size={16} />
                     </button>
-                    <button type="button" className="rounded p-2 text-seal-700 hover:bg-seal-50" aria-label={`Eliminar pré-venda de «${title(p.bookId)}»`} onClick={() => confirm('Eliminar esta pré-venda?') && act(() => api.admin.deletePreorder(p.id))}>
+                    <button type="button" className="flex h-10 w-10 items-center justify-center rounded text-danger hover:bg-danger-soft" aria-label={`Eliminar pré-venda de «${title(p.bookId)}»`} onClick={() => confirm('Eliminar esta pré-venda?') && act(() => api.admin.deletePreorder(p.id))}>
                       <Trash2 size={16} />
                     </button>
                   </div>

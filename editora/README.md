@@ -48,6 +48,7 @@ Home → Livro → Pré-venda → Carrinho/Checkout → Revisão → Pagamento �
 | `/carrinho`, `/checkout` | Compra |
 | `/conta`, `/encomenda/:id` | Área do cliente: encomendas, pré-vendas, dados pessoais e acompanhamento |
 | `/informacoes/:slug` | Políticas (envios, pré-venda, devoluções, privacidade) |
+| `/sobre`, `/contacto` | Sobre nós (texto em `site.ts > about`, a rever) e contactos |
 
 | Administração (papel `admin`) | |
 |---|---|
@@ -66,10 +67,35 @@ Tudo o que a equipa pode querer mudar sem mexer nos componentes está em **`src/
 
 Os custos de entrega que o servidor efetivamente cobra estão na tabela `delivery_methods`. Tem de ser mantida igual a `deliveryMethods` em `site.ts`.
 
+## Sistema de design
+
+A identidade visual vive em dois sítios. Mude-a aí, não nos componentes:
+
+- **`src/index.css` (`:root`)**, com os tokens de cor:
+
+  | Token | Uso |
+  |---|---|
+  | `primary` (lacre) | ações principais e pré-venda |
+  | `secondary` (tinta) | ações secundárias e superfícies escuras |
+  | `accent` (dourado) | destaque discreto |
+  | `background` / `surface` / `surface-alt` | fundos |
+  | `text` / `muted` | texto principal e secundário |
+  | `border` | bordas |
+  | `success` / `warning` / `danger` | estados |
+
+  Os contrastes cumprem WCAG AA sobre o fundo de papel. No Tailwind usam-se como `bg-primary`, `text-muted`, `border-line`, etc.
+- **Escala tipográfica:** `.t-display`, `.t-h1`–`.t-h4`, `.t-lead`, `.t-body`, `.t-small`, `.t-caption`, com Fraunces nos títulos e Inter no texto.
+- **Ritmo:** `.page` (margens de página) e `.section` (espaço entre secções), em múltiplos de 8 px.
+
+Os componentes partilhados são: `Button` (primary / secondary / tertiary / ghost / danger), `Badge`, `Notice` (info / success / warning / error), `Toast`, `Breadcrumb`, `Pagination`, `SectionHeader`, `BookCard` / `BookGrid`, `PreorderCard`, `AuthorCard` / `AuthorHero`, `FilterPanel`, `Countdown` e `Modal`.
+
+As animações respeitam `prefers-reduced-motion`. As áreas de toque têm pelo menos 40–44 px e o layout foi verificado a 320, 375, 390, 768, 1024 e 1440 px.
+
 ## Produção com Supabase
 
 1. Crie um projeto Supabase e, em **SQL Editor**, execute por esta ordem:
    - `supabase/migrations/001_editora_schema.sql`, que cria as tabelas, a RLS, as funções de encomenda e pagamento e o bucket `media`
+   - `supabase/migrations/002_book_language.sql`, que acrescenta o idioma do livro
    - opcionalmente, `supabase/seed.sql` (dados de demonstração marcados com `is_demo = true`)
 2. Promova a primeira conta da equipa (depois de ela se registar no site):
    ```sql
@@ -142,7 +168,7 @@ Garantias do tratamento de webhooks:
 
 ```bash
 npm run lint
-npm test            # 43 testes: pré-venda, preços, estados, validação, filtros, painel, assinatura de webhooks
+npm test            # 46 testes: pré-venda, preços, estados, validação, filtros, painel, assinatura de webhooks
 npm run build
 ```
 

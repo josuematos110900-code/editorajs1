@@ -48,6 +48,7 @@ export interface Book {
   description: string;
   pages: number | null;
   isbn: string | null;
+  language: string;
   publisher: string;
   publicationDate: string | null; // AAAA-MM-DD
   formats: BookFormat[];

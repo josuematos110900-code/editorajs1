@@ -24,7 +24,7 @@ export function AdminSidebar({ className }: { className?: string }) {
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition',
-                  isActive ? 'bg-ink-950 text-paper-50' : 'text-ink-700 hover:bg-ink-100 hover:text-ink-950',
+                  isActive ? 'bg-secondary text-background' : 'text-fg/85 hover:bg-surface-alt hover:text-fg',
                 )
               }
             >

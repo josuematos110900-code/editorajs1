@@ -19,6 +19,7 @@ export const site = {
     phone: '+244 900 000 000', // demonstração
     address: 'Luanda, Angola',
     hours: 'Seg–Sex, 8h00–17h00',
+    manuscripts: 'originais@exemplo.ao', // demonstração
   },
   social: [
     { label: 'Facebook', href: 'https://facebook.com/' },
@@ -29,11 +30,26 @@ export const site = {
   texts: {
     heroEyebrow: 'Pré-venda aberta',
     newsletterTitle: 'Primeiro a saber.',
-    newsletterBody: 'Lançamentos, pré-vendas e encontros com autores — uma carta por mês, sem ruído.',
-    preorderDefaultBenefits: [
-      'Preço especial de pré-venda',
-      'Exemplar entre os primeiros enviados',
-      'Reserva garantida do seu exemplar',
+    newsletterBody: 'Receba novidades, lançamentos e pré-vendas da nossa editora.',
+  },
+  // Página «Sobre nós» — TEXTO A REVER pela editora antes de publicar.
+  about: {
+    title: 'Publicamos livros que ficam.',
+    intro:
+      'Somos uma editora angolana dedicada a obras académicas, literárias, pedagógicas e institucionais. Acompanhamos cada livro desde o manuscrito até às mãos de quem o lê.',
+    sections: [
+      {
+        title: 'O que publicamos',
+        body: 'História e memória, educação, literatura e ensaio. Livros com rigor, cuidado gráfico e vontade de durar.',
+      },
+      {
+        title: 'Como trabalhamos',
+        body: 'Revisão editorial em várias etapas, ficha técnica e depósito legal, paginação e impressão acompanhadas pela nossa equipa.',
+      },
+      {
+        title: 'Para autores',
+        body: 'Recebemos propostas de publicação. Escreva-nos com uma sinopse, um capítulo de amostra e uma breve nota biográfica.',
+      },
     ],
   },
 } as const;

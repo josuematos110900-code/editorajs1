@@ -10,7 +10,7 @@ export function ImageUpload({ label, folder, onUploaded }: { label: string; fold
 
   return (
     <div>
-      <label htmlFor={id} className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-ink-200 bg-white px-3 py-2 text-sm font-medium hover:border-ink-400">
+      <label htmlFor={id} className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-surface px-3 py-2 text-sm font-medium hover:border-line-strong">
         <Upload size={15} aria-hidden="true" /> {busy ? 'A carregar…' : label}
       </label>
       <input
@@ -34,7 +34,7 @@ export function ImageUpload({ label, folder, onUploaded }: { label: string; fold
           }
         }}
       />
-      {error && <p className="mt-1 text-sm text-seal-700" role="alert">{error}</p>}
+      {error && <p className="mt-1 text-sm text-primary" role="alert">{error}</p>}
     </div>
   );
 }

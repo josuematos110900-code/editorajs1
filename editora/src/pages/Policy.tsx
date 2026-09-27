@@ -11,7 +11,7 @@ export default function Policy() {
   return (
     <article className="container-page max-w-3xl py-12 sm:py-16">
       <p className="eyebrow">Informações</p>
-      <h1 className="mt-3 text-4xl font-medium">{policy.title}</h1>
+      <h1 className="t-h1 mt-3">{policy.title}</h1>
       <div className="prose-editorial mt-8 text-lg">
         {policy.body.map((p) => (
           <p key={p}>{p}</p>

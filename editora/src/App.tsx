@@ -4,6 +4,7 @@ import { AdminLayout } from './components/layout/AdminLayout';
 import { RequireAdmin, RequireAuth } from './components/layout/Guards';
 import { PublicLayout } from './components/layout/PublicLayout';
 import { Spinner } from './components/ui/Feedback';
+import { ToastProvider } from './components/ui/Toast';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { CatalogProvider } from './context/CatalogContext';
@@ -20,6 +21,8 @@ const PreorderPage = lazy(() => import('./pages/PreorderPage'));
 const Authors = lazy(() => import('./pages/Authors'));
 const AuthorPage = lazy(() => import('./pages/AuthorPage'));
 const Policy = lazy(() => import('./pages/Policy'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
 const Cart = lazy(() => import('./pages/Cart'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const SignIn = lazy(() => import('./pages/SignIn'));
@@ -42,6 +45,7 @@ export default function App() {
       <AuthProvider>
         <CatalogProvider>
           <CartProvider>
+            <ToastProvider>
             <Suspense fallback={<Spinner />}>
               <Routes>
                 <Route element={<PublicLayout />}>
@@ -53,6 +57,8 @@ export default function App() {
                   <Route path="autores" element={<Authors />} />
                   <Route path="autores/:slug" element={<AuthorPage />} />
                   <Route path="informacoes/:slug" element={<Policy />} />
+                  <Route path="sobre" element={<About />} />
+                  <Route path="contacto" element={<Contact />} />
                   <Route path="carrinho" element={<Cart />} />
                   <Route path="checkout" element={<Checkout />} />
                   <Route path="entrar" element={<SignIn mode="entrar" />} />
@@ -79,6 +85,7 @@ export default function App() {
                 </Route>
               </Routes>
             </Suspense>
+            </ToastProvider>
           </CartProvider>
         </CatalogProvider>
       </AuthProvider>
@@ -88,10 +95,10 @@ export default function App() {
 
 function ConfigurationMissing() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-paper px-6">
+    <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="max-w-md text-center">
         <h1 className="text-3xl font-medium">Configuração em falta</h1>
-        <p className="mt-3 text-ink-600">
+        <p className="mt-3 text-muted">
           Defina <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code> no ambiente de build (ver <code>editora/README.md</code>).
         </p>
       </div>

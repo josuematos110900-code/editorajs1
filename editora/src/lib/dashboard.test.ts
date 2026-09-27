@@ -46,3 +46,19 @@ describe('computeDashboard', () => {
     expect(stats.revenueByDay.at(-2)).toEqual({ date: '2026-09-30', revenue: 25000 });
   });
 });
+
+describe('computeAlerts', () => {
+  it('assinala pagamentos parados, pré-vendas a terminar ou quase esgotadas e stock baixo', async () => {
+    const { buildDemoCatalog } = await import('../data/demoSeed');
+    const { computeAlerts } = await import('./dashboard');
+    const catalog = buildDemoCatalog(now.getTime());
+    const stale = { ...order('s', 'pendente', 1000, [['x', 1, 1000]]), createdAt: '2026-09-27T10:00:00Z' };
+    const ids = computeAlerts([stale], catalog.preorders, catalog.books, now).map((a) => a.id);
+    expect(ids).toContain('pagamentos');
+    expect(ids).not.toContain('quase-pre-rios'); // 131/150 = 87% < 90%
+    expect(computeAlerts([], catalog.preorders.map((p) => (p.id === 'pre-rios' ? { ...p, reserved: 140 } : p)), catalog.books, now).map((a) => a.id)).toContain('quase-pre-rios');
+    expect(ids).toContain('stock-bk-cartas'); // 3 exemplares
+    expect(ids).toContain('stock-bk-provincias'); // esgotado
+    expect(ids).not.toContain('stock-bk-segredo'); // em pré-venda
+  });
+});

@@ -65,3 +65,18 @@ export function maxPurchasable(book: Book, preorder: Preorder | undefined, now: 
   if (availability === 'disponivel') return Math.min(10, book.stock);
   return 0;
 }
+
+/**
+ * Benefícios que existem de facto: a poupança calculada, a reserva garantida
+ * pelo sistema (as unidades ficam cativas na encomenda) e os benefícios que a
+ * equipa definiu para esta campanha. Nunca inventa vantagens genéricas.
+ */
+export function preorderBenefits(book: Book, preorder: Preorder, formatMoney: (n: number) => string): string[] {
+  const list: string[] = [];
+  if (preorder.specialPrice < book.price) list.push(`Preço especial: poupa ${formatMoney(book.price - preorder.specialPrice)} por exemplar`);
+  list.push('Reserva garantida: o seu exemplar fica guardado assim que encomenda');
+  for (const b of preorder.benefits) {
+    if (!/pre[çc]o especial|reserva garantida/i.test(b)) list.push(b);
+  }
+  return list;
+}

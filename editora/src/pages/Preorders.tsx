@@ -29,10 +29,10 @@ export default function Preorders() {
   };
 
   return (
-    <div className="container-page py-12 sm:py-16">
+    <div className="page">
       <p className="eyebrow">Reserve antes do lançamento</p>
-      <h1 className="mt-3 text-4xl font-medium sm:text-5xl">Pré-venda</h1>
-      <p className="mt-4 max-w-2xl text-lg text-ink-700">
+      <h1 className="t-h1 mt-3">Pré-venda</h1>
+      <p className="mt-4 max-w-2xl text-lg text-fg/85">
         Garanta o seu exemplar antes de chegar às livrarias, com preço especial e benefícios exclusivos. Só é cobrado o valor da reserva — e pode cancelar até ao envio.
       </p>
 
@@ -47,7 +47,7 @@ export default function Preorders() {
       ) : (
         groups.map((g) => (
           <section key={g.state} className="mt-14" aria-labelledby={`grupo-${g.state}`}>
-            <h2 id={`grupo-${g.state}`} className="mb-6 border-b border-ink-100 pb-3 text-2xl font-medium">
+            <h2 id={`grupo-${g.state}`} className="mb-6 border-b border-line pb-3 text-2xl font-medium">
               {titles[g.state]}
             </h2>
             <div className="grid gap-5 lg:grid-cols-2">

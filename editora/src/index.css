@@ -2,47 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =====================================================================
+   Sistema de design — Editora
+   ---------------------------------------------------------------------
+   Cores: papel e tinta como base; vermelho-lacre como cor principal
+   (ações e pré-venda); dourado como destaque discreto; verde, lacre e
+   ocre só para estados. Valores em "R G B" para permitir opacidade.
+   Contrastes verificados (WCAG AA) sobre --color-background.
+   ===================================================================== */
 @layer base {
+  :root {
+    --color-primary: 140 47 27; /* #8C2F1B lacre — 7.3:1 */
+    --color-primary-hover: 107 31 17; /* #6B1F11 */
+    --color-primary-soft: 251 241 237; /* #FBF1ED */
+    --color-secondary: 28 26 23; /* #1C1A17 tinta */
+    --color-secondary-hover: 61 57 52; /* #3D3934 */
+    --color-accent: 138 106 31; /* #8A6A1F dourado — 4.6:1 */
+    --color-accent-soft: 244 234 210; /* #F4EAD2 */
+    --color-background: 247 243 236; /* #F7F3EC papel */
+    --color-surface: 255 255 255;
+    --color-surface-alt: 237 230 218; /* #EDE6DA */
+    --color-text: 28 26 23; /* #1C1A17 — 15.6:1 */
+    --color-muted: 95 89 80; /* #5F5950 — 6.2:1 */
+    --color-border: 226 219 207; /* #E2DBCF */
+    --color-border-strong: 181 174 162; /* #B5AEA2 */
+    --color-success: 42 97 72; /* #2A6148 */
+    --color-success-soft: 221 238 228;
+    --color-danger: 166 58 34; /* #A63A22 */
+    --color-danger-soft: 251 241 237;
+    --color-warning: 122 90 20; /* #7A5A14 */
+    --color-warning-soft: 244 234 210;
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
   }
   body {
-    @apply bg-paper text-ink-900 font-body antialiased;
-    font-feature-settings: 'ss01', 'cv11';
+    @apply bg-background font-body text-[16px] leading-relaxed text-fg antialiased;
   }
   h1, h2, h3, h4 {
-    @apply font-display text-ink-950;
+    @apply font-display text-fg;
     font-optical-sizing: auto;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
   }
   :focus-visible {
-    @apply outline-none ring-2 ring-seal-600 ring-offset-2 ring-offset-paper;
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+  ::selection {
+    @apply bg-accent-soft text-fg;
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   }
 }
 
 @layer components {
-  .container-page {
-    @apply mx-auto w-full max-w-page px-4 sm:px-6 lg:px-8;
-  }
-  .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.18em] text-seal-700;
-  }
-  .prose-editorial p {
-    @apply mb-4 leading-relaxed text-ink-700;
-  }
+  /* ---- Escala tipográfica (Display → Caption) ---------------------- */
+  .t-display { @apply font-display text-[2.5rem] font-medium leading-[1.04] sm:text-[3.5rem] lg:text-[4.25rem]; }
+  .t-h1 { @apply font-display text-[2.125rem] font-medium leading-[1.1] sm:text-5xl; }
+  .t-h2 { @apply font-display text-[1.75rem] font-medium leading-tight sm:text-4xl; }
+  .t-h3 { @apply font-display text-xl font-medium leading-snug sm:text-2xl; }
+  .t-h4 { @apply font-display text-lg font-medium leading-snug; }
+  .t-lead { @apply text-lg leading-relaxed text-muted; }
+  .t-body { @apply text-base leading-relaxed; }
+  .t-small { @apply text-sm leading-normal; }
+  .t-caption { @apply text-xs font-semibold uppercase tracking-[0.16em] text-muted; }
+  .eyebrow { @apply text-xs font-semibold uppercase tracking-[0.18em] text-primary; }
+
+  /* ---- Layout e ritmo vertical (múltiplos de 8px) ------------------ */
+  .container-page { @apply mx-auto w-full max-w-page px-4 sm:px-6 lg:px-8; }
+  .page { @apply container-page py-10 sm:py-14 lg:py-16; }
+  .section { @apply mt-20 sm:mt-24 lg:mt-28; }
+
+  /* ---- Superfícies ------------------------------------------------- */
+  .card { @apply rounded-card border border-line bg-surface; }
+  .prose-editorial p { @apply mb-4 leading-relaxed text-muted; }
+
+  /* ---- Campos: normal, foco, preenchido, erro, sucesso, desativado -- */
   .input {
-    @apply block w-full rounded-md border border-ink-200 bg-white px-3 py-2.5 text-[15px] text-ink-900 placeholder:text-ink-400
-      transition focus:border-seal-600 focus:outline-none focus:ring-2 focus:ring-seal-600/20 disabled:bg-paper-200;
+    @apply block min-h-11 w-full rounded-md border border-line-strong/70 bg-surface px-3 py-2.5 text-[15px] text-fg
+      transition-colors placeholder:text-muted/70
+      hover:border-line-strong
+      focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20
+      disabled:cursor-not-allowed disabled:border-line disabled:bg-surface-alt/60 disabled:text-muted;
   }
-  .input[aria-invalid='true'] {
-    @apply border-seal-600;
-  }
-  .card {
-    @apply rounded-lg border border-ink-100 bg-white;
-  }
+  .input:not(:placeholder-shown):not([aria-invalid='true']):not(:focus) { @apply border-line-strong; }
+  .input[aria-invalid='true'] { @apply border-danger bg-danger-soft/40 focus:ring-danger/20; }
+  .input[data-valid='true'] { @apply border-success; }
 }

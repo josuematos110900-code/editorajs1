@@ -64,7 +64,7 @@ export function AuthForm({ initialMode = 'entrar', onDone }: { initialMode?: 'en
 
   return (
     <div>
-      <div className="mb-6 grid grid-cols-2 rounded-md bg-paper-200 p-1" role="tablist" aria-label="Tipo de acesso">
+      <div className="mb-6 grid grid-cols-2 rounded-md bg-surface-alt p-1" role="tablist" aria-label="Tipo de acesso">
         {(['entrar', 'registar'] as const).map((m) => (
           <button
             key={m}
@@ -76,7 +76,7 @@ export function AuthForm({ initialMode = 'entrar', onDone }: { initialMode?: 'en
               setErrors({});
               setFormError('');
             }}
-            className={`rounded px-3 py-2 text-sm font-medium transition ${mode === m ? 'bg-white text-ink-950 shadow-sm' : 'text-ink-600 hover:text-ink-900'}`}
+            className={`rounded px-3 py-2 text-sm font-medium transition ${mode === m ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg'}`}
           >
             {m === 'entrar' ? 'Já tenho conta' : 'Criar conta'}
           </button>

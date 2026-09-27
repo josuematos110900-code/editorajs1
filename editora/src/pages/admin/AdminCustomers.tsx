@@ -27,13 +27,13 @@ export default function AdminCustomers() {
           <tr key={c.id}>
             <td className="px-4 py-3 font-medium">
               {c.fullName || '—'}
-              {c.role === 'admin' && <span className="ml-2 rounded bg-ink-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase text-ink-600">Equipa</span>}
+              {c.role === 'admin' && <span className="ml-2 rounded bg-surface-alt px-1.5 py-0.5 text-[11px] font-semibold uppercase text-muted">Equipa</span>}
             </td>
             <td className="px-4 py-3">
               {c.email}
-              <p className="text-xs text-ink-500">{c.phone}</p>
+              <p className="text-xs text-muted">{c.phone}</p>
             </td>
-            <td className="px-4 py-3 text-ink-600">{formatShortDate(c.createdAt)}</td>
+            <td className="px-4 py-3 text-muted">{formatShortDate(c.createdAt)}</td>
             <td className="px-4 py-3 tabular-nums">{c.orders}</td>
             <td className="px-4 py-3 tabular-nums">{formatMoney(c.spent)}</td>
           </tr>

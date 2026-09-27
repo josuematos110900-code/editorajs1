@@ -42,6 +42,7 @@ const empty: BookInput = {
   description: '',
   pages: null,
   isbn: null,
+  language: 'Português',
   publisher: site.name,
   publicationDate: null,
   formats: ['capa_mole'],
@@ -122,13 +123,13 @@ export default function AdminBookForm() {
 
   return (
     <>
-      <Link to="/admin/livros" className="mb-4 inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-950">
+      <Link to="/admin/livros" className="mb-2 inline-flex min-h-10 items-center gap-1 text-sm text-muted hover:text-fg">
         <ArrowLeft size={15} aria-hidden="true" /> Livros
       </Link>
       <AdminPageHeader title={isNew ? 'Novo livro' : book.title || 'Editar livro'} />
       <form onSubmit={onSubmit} noValidate className="grid gap-8 xl:grid-cols-[1fr_18rem]">
         <div className="space-y-8">
-          <fieldset className="space-y-4 rounded-lg border border-ink-100 bg-white p-6">
+          <fieldset className="space-y-4 rounded-card border border-line bg-surface p-6">
             <legend className="px-1 font-display text-lg">Informação</legend>
             <TextField
               label="Título"
@@ -166,16 +167,17 @@ export default function AdminBookForm() {
             <TextAreaField label="Descrição" value={book.description} onChange={(e) => set('description', e.target.value)} />
           </fieldset>
 
-          <fieldset className="space-y-4 rounded-lg border border-ink-100 bg-white p-6">
+          <fieldset className="space-y-4 rounded-card border border-line bg-surface p-6">
             <legend className="px-1 font-display text-lg">Ficha técnica</legend>
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField label="ISBN" value={book.isbn ?? ''} onChange={(e) => set('isbn', e.target.value)} />
               <TextField label="Número de páginas" inputMode="numeric" value={nums.pages} onChange={(e) => setNums((n) => ({ ...n, pages: e.target.value }))} error={errors.pages} />
               <TextField label="Editora" value={book.publisher} onChange={(e) => set('publisher', e.target.value)} />
+              <TextField label="Idioma" value={book.language} onChange={(e) => set('language', e.target.value)} />
               <TextField label="Data de publicação / lançamento" type="date" value={book.publicationDate ?? ''} onChange={(e) => set('publicationDate', e.target.value || null)} />
             </div>
             <div>
-              <p className="mb-2 text-sm font-medium text-ink-800">Formatos</p>
+              <p className="mb-2 text-sm font-medium text-fg">Formatos</p>
               <div className="flex flex-wrap gap-5">
                 {(Object.keys(formatLabels) as BookFormat[]).map((f) => (
                   <Checkbox
@@ -186,27 +188,27 @@ export default function AdminBookForm() {
                   />
                 ))}
               </div>
-              {errors.formats && <p className="mt-1 text-sm text-seal-700" role="alert">{errors.formats}</p>}
+              {errors.formats && <p className="mt-1 text-sm text-primary" role="alert">{errors.formats}</p>}
             </div>
           </fieldset>
 
-          <fieldset className="space-y-4 rounded-lg border border-ink-100 bg-white p-6">
+          <fieldset className="space-y-4 rounded-card border border-line bg-surface p-6">
             <legend className="px-1 font-display text-lg">Preço e stock</legend>
             <div className="grid gap-4 sm:grid-cols-3">
               <TextField label="Preço (Kz)" inputMode="numeric" value={nums.price} onChange={(e) => setNums((n) => ({ ...n, price: e.target.value }))} error={errors.price} required />
               <TextField label="Preço anterior (Kz)" inputMode="numeric" value={nums.compareAtPrice} onChange={(e) => setNums((n) => ({ ...n, compareAtPrice: e.target.value }))} error={errors.compareAtPrice} hint="Aparece riscado." />
               <TextField label="Stock" inputMode="numeric" value={nums.stock} onChange={(e) => setNums((n) => ({ ...n, stock: e.target.value }))} error={errors.stock} required />
             </div>
-            <p className="text-xs text-ink-500">Preço especial, datas e limite de pré-venda geridos em «Pré-vendas».</p>
+            <p className="text-xs text-muted">Preço especial, datas e limite de pré-venda geridos em «Pré-vendas».</p>
           </fieldset>
 
-          <fieldset className="space-y-4 rounded-lg border border-ink-100 bg-white p-6">
+          <fieldset className="space-y-4 rounded-card border border-line bg-surface p-6">
             <legend className="px-1 font-display text-lg">Galeria</legend>
             <ul className="flex flex-wrap gap-3">
               {book.gallery.map((src) => (
                 <li key={src} className="relative w-20">
                   <img src={src} alt="" className="aspect-[2/3] w-full rounded object-cover" />
-                  <button type="button" onClick={() => set('gallery', book.gallery.filter((g) => g !== src))} className="absolute -right-2 -top-2 rounded-full bg-ink-950 p-1 text-white" aria-label="Remover imagem">
+                  <button type="button" onClick={() => set('gallery', book.gallery.filter((g) => g !== src))} className="absolute -right-2 -top-2 rounded-full bg-secondary p-1 text-white" aria-label="Remover imagem">
                     <X size={12} />
                   </button>
                 </li>
@@ -217,7 +219,7 @@ export default function AdminBookForm() {
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
-          <div className="rounded-lg border border-ink-100 bg-white p-5">
+          <div className="rounded-card border border-line bg-surface p-5">
             <p className="mb-3 text-sm font-medium">Capa</p>
             <BookCover book={book} authorName={author?.name} />
             <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -225,13 +227,13 @@ export default function AdminBookForm() {
               {book.coverUrl && <Button variant="ghost" size="sm" onClick={() => set('coverUrl', null)}>Remover</Button>}
             </div>
             {!book.coverUrl && (
-              <label className="mt-3 flex items-center gap-2 text-sm text-ink-600">
+              <label className="mt-3 flex items-center gap-2 text-sm text-muted">
                 Cor da capa gerada
-                <input type="color" value={book.coverColor} onChange={(e) => set('coverColor', e.target.value)} className="h-8 w-10 cursor-pointer rounded border border-ink-200" />
+                <input type="color" value={book.coverColor} onChange={(e) => set('coverColor', e.target.value)} className="h-10 w-12 cursor-pointer rounded border border-line" />
               </label>
             )}
           </div>
-          <div className="rounded-lg border border-ink-100 bg-white p-5">
+          <div className="rounded-card border border-line bg-surface p-5">
             <Checkbox label="Publicado (visível na loja)" checked={book.published} onChange={(e) => set('published', e.target.checked)} />
           </div>
           {saveError && <Notice tone="error">{saveError}</Notice>}

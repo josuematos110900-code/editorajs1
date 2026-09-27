@@ -5,6 +5,8 @@ import { Header } from './Header';
 
 export function PublicLayout() {
   const { pathname } = useLocation();
+  // No checkout o rodapé sai: menos distrações no momento da compra.
+  const focused = pathname === '/checkout';
   useEffect(() => window.scrollTo(0, 0), [pathname]);
 
   return (
@@ -13,7 +15,11 @@ export function PublicLayout() {
       <main id="conteudo" className="flex-1" tabIndex={-1}>
         <Outlet />
       </main>
-      <Footer />
+      {focused ? (
+        <p className="border-t border-line py-6 text-center t-small text-muted">Pagamento seguro · Nunca guardamos dados de cartão bancário</p>
+      ) : (
+        <Footer showNewsletter={pathname !== '/'} />
+      )}
     </div>
   );
 }

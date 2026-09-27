@@ -33,23 +33,23 @@ export function Modal({ open, onClose, title, description, children, wide }: Mod
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
-      <div className="absolute inset-0 bg-ink-950/50 backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-secondary/50 backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
       <div
         ref={panelRef}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative max-h-[92vh] w-full overflow-y-auto rounded-t-xl bg-paper-50 shadow-2xl sm:rounded-xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'} animate-fade-up focus:outline-none`}
+        className={`relative max-h-[92vh] w-full overflow-y-auto rounded-t-xl bg-background shadow-2xl sm:rounded-card ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'} animate-fade-up focus:outline-none`}
       >
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-ink-100 bg-paper-50 px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-line bg-background px-6 py-4">
           <div>
             <h2 id={titleId} className="text-xl font-semibold">
               {title}
             </h2>
-            {description && <p className="mt-1 text-sm text-ink-500">{description}</p>}
+            {description && <p className="mt-1 text-sm text-muted">{description}</p>}
           </div>
-          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-ink-500 hover:bg-ink-100 hover:text-ink-900" aria-label="Fechar">
+          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-muted hover:bg-surface-alt hover:text-fg" aria-label="Fechar">
             <X size={20} />
           </button>
         </div>

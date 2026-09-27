@@ -46,20 +46,20 @@ export function NewsletterForm({ tone = 'light' }: { tone?: 'light' | 'dark' }) 
           aria-invalid={state === 'error' || undefined}
           aria-describedby={message ? `newsletter-${tone}-msg` : undefined}
           className={cn(
-            'h-11 flex-1 rounded-md border px-3 text-[15px] focus:outline-none focus:ring-2',
-            dark ? 'border-ink-700 bg-ink-900 text-paper-50 placeholder:text-ink-400 focus:ring-paper-50/30' : 'border-ink-200 bg-white focus:ring-seal-600/20',
+            'h-12 w-full min-w-0 rounded-md border px-3 text-[15px] focus:outline-none focus:ring-2 sm:h-11 sm:flex-1',
+            dark ? 'border-ink-700 bg-secondary text-background placeholder:text-ink-300 focus:ring-paper-50/30' : 'border-line bg-surface focus:ring-primary/20',
           )}
         />
         <button
           type="submit"
           disabled={state === 'loading'}
-          className={cn('h-11 rounded-md px-5 text-[15px] font-medium transition disabled:opacity-60', dark ? 'bg-paper-50 text-ink-950 hover:bg-paper-200' : 'bg-ink-950 text-paper-50 hover:bg-seal-700')}
+          className={cn('h-12 shrink-0 rounded-md px-5 sm:h-11 text-[15px] font-medium transition disabled:opacity-60', dark ? 'bg-background text-fg hover:bg-surface-alt' : 'bg-secondary text-background hover:bg-primary')}
         >
           {state === 'loading' ? 'A enviar…' : 'Subscrever'}
         </button>
       </div>
       {message && (
-        <p id={`newsletter-${tone}-msg`} role={state === 'error' ? 'alert' : 'status'} className={cn('mt-2 text-sm', state === 'error' ? (dark ? 'text-seal-100' : 'text-seal-700') : dark ? 'text-leaf-100' : 'text-leaf-700')}>
+        <p id={`newsletter-${tone}-msg`} role={state === 'error' ? 'alert' : 'status'} className={cn('mt-2 text-sm', state === 'error' ? (dark ? 'text-seal-100' : 'text-primary') : dark ? 'text-success-soft' : 'text-success')}>
           {message}
         </p>
       )}

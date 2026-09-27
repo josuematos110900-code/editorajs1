@@ -94,8 +94,8 @@ export function PreorderForm({ books, preorder, bookId, onSaved }: { books: Book
         <TextField label="Limite de unidades" inputMode="numeric" value={v.unitLimit} onChange={set('unitLimit')} error={errors.unitLimit} hint="Vazio = sem limite." />
         <TextField label="Envio previsto" type="date" value={v.expectedShipDate} onChange={set('expectedShipDate')} />
         {preorder && (
-          <div className="rounded-md bg-paper-100 px-4 py-3 text-sm">
-            <p className="text-ink-500">Reservas</p>
+          <div className="rounded-md bg-background px-4 py-3 text-sm">
+            <p className="text-muted">Reservas</p>
             <p className="font-display text-2xl">{preorder.reserved}</p>
           </div>
         )}

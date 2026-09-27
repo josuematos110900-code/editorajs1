@@ -21,6 +21,7 @@ interface BookRow {
   description: string;
   pages: number | null;
   isbn: string | null;
+  language: string;
   publisher: string;
   publication_date: string | null;
   formats: string[];
@@ -106,6 +107,7 @@ function toBook(r: BookRow): Book {
     description: r.description,
     pages: r.pages,
     isbn: r.isbn,
+    language: r.language,
     publisher: r.publisher,
     publicationDate: r.publication_date,
     formats: r.formats as BookFormat[],
@@ -132,6 +134,7 @@ function fromBook(b: BookInput) {
     description: b.description,
     pages: b.pages,
     isbn: b.isbn,
+    language: b.language,
     publisher: b.publisher,
     publication_date: b.publicationDate,
     formats: b.formats,

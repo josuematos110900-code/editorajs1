@@ -32,6 +32,7 @@ export interface BookInput {
   description: string;
   pages: number | null;
   isbn: string | null;
+  language: string;
   publisher: string;
   publicationDate: string | null;
   formats: BookFormat[];

@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, CalendarClock, Coins, Package, PenLine, Users } from 'lucide-react';
+import { AlertTriangle, ArrowRight, BookOpen, CalendarClock, CheckCircle2, Coins, Package, PenLine, Users } from 'lucide-react';
 import { DataTable } from '../../components/admin/DataTable';
 import { StatCard } from '../../components/admin/StatCard';
 import { AdminPageHeader } from '../../components/layout/AdminLayout';
 import { OrderStatusBadge } from '../../components/OrderStatus';
 import { Notice, Spinner } from '../../components/ui/Feedback';
 import { api } from '../../data';
-import { computeDashboard } from '../../lib/dashboard';
+import { computeAlerts, computeDashboard } from '../../lib/dashboard';
 import { formatMoney, formatShortDate } from '../../lib/format';
 import { getPreorderState } from '../../lib/preorder';
 import { useAsync } from '../../lib/useAsync';
@@ -24,33 +24,50 @@ export default function AdminDashboard() {
   const stats = computeDashboard(orders, catalog.preorders, catalog.books);
   const openPreorders = catalog.preorders.filter((p) => getPreorderState(p) === 'aberta').length;
   const maxDay = Math.max(1, ...stats.revenueByDay.map((d) => d.revenue));
+  const alerts = computeAlerts(orders, catalog.preorders, catalog.books);
+  const availableBooks = catalog.books.filter((b) => b.published && b.stock > 0).length;
 
   return (
     <>
       <AdminPageHeader title="Painel" description="Visão geral das vendas, pré-vendas e encomendas." />
 
-      {stats.pendingOrders > 0 && (
-        <Notice className="mb-6">
-          Há <strong>{stats.pendingOrders}</strong> encomenda(s) a aguardar pagamento e <strong>{stats.toShip}</strong> por enviar.{' '}
-          <Link to="/admin/encomendas" className="font-semibold underline">Ver encomendas</Link>
-        </Notice>
-      )}
-
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Receita" value={formatMoney(stats.revenue)} hint={`${stats.paidOrders} encomendas pagas`} icon={<Coins size={18} />} />
+        <StatCard className="col-span-2" label="Receita" value={formatMoney(stats.revenue)} hint={`${stats.paidOrders} encomendas pagas`} icon={<Coins size={18} />} />
         <StatCard label="Vendas" value={stats.unitsSold} hint="exemplares pagos" icon={<Package size={18} />} />
         <StatCard label="Pré-vendas" value={stats.preorderUnits} hint={`${openPreorders} campanha(s) aberta(s)`} icon={<CalendarClock size={18} />} />
         <StatCard label="Encomendas" value={stats.totalOrders} hint={`${stats.toShip} por enviar`} icon={<Package size={18} />} />
-        <StatCard label="Livros" value={catalog.books.length} hint={`${catalog.books.filter((b) => b.published).length} publicados`} icon={<BookOpen size={18} />} />
+        <StatCard label="Livros" value={catalog.books.length} hint={`${availableBooks} disponíveis em stock`} icon={<BookOpen size={18} />} />
         <StatCard label="Autores" value={catalog.authors.length} icon={<PenLine size={18} />} />
         <StatCard label="Clientes" value={customers.filter((c) => c.role === 'customer').length} hint="contas registadas" icon={<Users size={18} />} />
       </div>
 
-      <section className="mt-8 rounded-lg border border-ink-100 bg-white p-5" aria-labelledby="receita-30">
-        <h2 id="receita-30" className="text-lg font-medium">Receita dos últimos 30 dias</h2>
+      <section className="mt-8" aria-labelledby="alertas">
+        <h2 id="alertas" className="t-h4 mb-3">Alertas</h2>
+        {alerts.length === 0 ? (
+          <p className="flex items-center gap-2 rounded-card border border-line bg-surface p-4 t-small text-success">
+            <CheckCircle2 size={16} aria-hidden="true" /> Tudo em ordem — nada pede atenção hoje.
+          </p>
+        ) : (
+          <ul className="divide-y divide-line rounded-card border border-line bg-surface">
+            {alerts.map((a) => (
+              <li key={a.id}>
+                <Link to={a.to} className="group flex items-center gap-3 px-4 py-3 t-small transition-colors hover:bg-background">
+                  <AlertTriangle size={16} className={a.tone === 'error' ? 'shrink-0 text-danger' : 'shrink-0 text-warning'} aria-hidden="true" />
+                  <span className="sr-only">{a.tone === 'error' ? 'Urgente:' : 'Atenção:'}</span>
+                  <span className="flex-1 text-fg">{a.message}</span>
+                  <ArrowRight size={15} className="shrink-0 text-muted transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-8 rounded-card border border-line bg-surface p-5" aria-labelledby="receita-30">
+        <h2 id="receita-30" className="t-h4">Receita dos últimos 30 dias</h2>
         <div className="mt-4 flex h-32 items-end gap-[3px]" aria-hidden="true">
           {stats.revenueByDay.map((d) => (
-            <div key={d.date} className="flex-1 rounded-t-sm bg-seal-700/80" style={{ height: `${Math.max(2, (d.revenue / maxDay) * 100)}%`, opacity: d.revenue ? 1 : 0.15 }} title={`${formatShortDate(d.date)}: ${formatMoney(d.revenue)}`} />
+            <div key={d.date} className="flex-1 rounded-t-sm bg-primary/80" style={{ height: `${Math.max(2, (d.revenue / maxDay) * 100)}%`, opacity: d.revenue ? 1 : 0.15 }} title={`${formatShortDate(d.date)}: ${formatMoney(d.revenue)}`} />
           ))}
         </div>
         <p className="sr-only">
@@ -60,9 +77,9 @@ export default function AdminDashboard() {
 
       <div className="mt-8 grid gap-8 xl:grid-cols-2">
         <section aria-labelledby="mais-vendidos">
-          <h2 id="mais-vendidos" className="mb-3 text-lg font-medium">Livros mais vendidos</h2>
+          <h2 id="mais-vendidos" className="t-h4 mb-3">Livros mais vendidos</h2>
           {stats.topBooks.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-ink-200 p-6 text-sm text-ink-500">Ainda sem vendas pagas.</p>
+            <p className="rounded-card border border-dashed border-line p-6 text-sm text-muted">Ainda sem vendas pagas.</p>
           ) : (
             <DataTable caption="Livros mais vendidos" head={['Livro', 'Exemplares', 'Receita']}>
               {stats.topBooks.map((b) => (
@@ -76,9 +93,9 @@ export default function AdminDashboard() {
           )}
         </section>
         <section aria-labelledby="recentes">
-          <h2 id="recentes" className="mb-3 text-lg font-medium">Encomendas recentes</h2>
+          <h2 id="recentes" className="t-h4 mb-3">Encomendas recentes</h2>
           {orders.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-ink-200 p-6 text-sm text-ink-500">Ainda sem encomendas.</p>
+            <p className="rounded-card border border-dashed border-line p-6 text-sm text-muted">Ainda sem encomendas.</p>
           ) : (
             <DataTable caption="Encomendas recentes" head={['Número', 'Cliente', 'Estado', 'Total']}>
               {orders.slice(0, 6).map((o) => (
