@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, type Catalog } from '../data';
-import type { Author, Book, Category, Preorder } from '../types';
+import type { Author, Book, Category, DigitalFile, DigitalKind, Preorder } from '../types';
 
 interface CatalogValue extends Catalog {
   loading: boolean;
@@ -12,11 +12,12 @@ interface CatalogValue extends Catalog {
   authorBySlug: (slug: string) => Author | undefined;
   categoryById: (id: string | null) => Category | undefined;
   preorderFor: (bookId: string) => Preorder | undefined;
+  filesFor: (bookId: string, kind?: DigitalKind) => DigitalFile[];
 }
 
 const CatalogContext = createContext<CatalogValue | undefined>(undefined);
 
-const empty: Catalog = { books: [], authors: [], categories: [], preorders: [] };
+const empty: Catalog = { books: [], authors: [], categories: [], preorders: [], digitalFiles: [] };
 
 /**
  * O catálogo público é carregado uma vez e partilhado por todas as páginas
@@ -59,6 +60,8 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       authorBySlug: (slug) => catalog.authors.find((a) => a.slug === slug),
       categoryById: (id) => (id ? categories.get(id) : undefined),
       preorderFor: (bookId) => preorders.get(bookId),
+      filesFor: (bookId, kind) =>
+        catalog.digitalFiles.filter((f) => f.bookId === bookId && (!kind || f.kind === kind)).sort((a, b) => a.position - b.position),
     };
   }, [catalog, loading, error, reload]);
 

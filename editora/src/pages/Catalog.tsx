@@ -8,11 +8,9 @@ import { BookGridSkeleton, EmptyState, Notice } from '../components/ui/Feedback'
 import { Pagination } from '../components/ui/Pagination';
 import { useCatalog } from '../context/CatalogContext';
 import { cn } from '../lib/cn';
-import { filterBooks, priceRanges, type CatalogFilters, type PriceRange, type SortKey } from '../lib/catalogFilter';
-import { formatLabels } from '../lib/format';
+import { catalogFormatLabels, filterBooks, priceRanges, type CatalogFilters, type CatalogFormat, type PriceRange, type SortKey } from '../lib/catalogFilter';
 import { availabilityLabels, type Availability } from '../lib/preorder';
 import { useSeo } from '../lib/seo';
-import type { BookFormat } from '../types';
 
 const PAGE_SIZE = 12;
 
@@ -27,7 +25,7 @@ const sortLabels: Record<SortKey, string> = {
 const FILTER_KEYS = ['q', 'genero', 'autor', 'disponibilidade', 'formato', 'preco'] as const;
 
 export default function Catalog() {
-  const { books, authors, categories, loading, error, preorderFor } = useCatalog();
+  const { books, authors, categories, loading, error, preorderFor, digitalFiles } = useCatalog();
   const [params, setParams] = useSearchParams();
   const [panelOpen, setPanelOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -37,7 +35,7 @@ export default function Catalog() {
     genero: params.get('genero') ?? '',
     autor: params.get('autor') ?? '',
     disponibilidade: (params.get('disponibilidade') as Availability | null) ?? '',
-    formato: (params.get('formato') as BookFormat | null) ?? '',
+    formato: (params.get('formato') as CatalogFormat | null) ?? '',
     preco: (params.get('preco') as PriceRange | null) ?? '',
     ordem: (params.get('ordem') as SortKey | null) ?? 'recentes',
   };
@@ -51,9 +49,9 @@ export default function Catalog() {
 
   const categorySlugToId = useMemo(() => new Map(categories.map((c) => [c.slug, c.id])), [categories]);
   const result = useMemo(
-    () => filterBooks(books, filters, { authors, categorySlugToId, preorderFor }),
+    () => filterBooks(books, filters, { authors, categorySlugToId, preorderFor, digitalFiles }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [books, authors, categorySlugToId, preorderFor, params],
+    [books, authors, categorySlugToId, preorderFor, digitalFiles, params],
   );
   const pages = Math.max(1, Math.ceil(result.length / PAGE_SIZE));
   const visible = result.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -88,7 +86,7 @@ export default function Catalog() {
       <FilterGroup legend="Autor" name={`${scope}-autor`} value={filters.autor} onChange={(v) => update('autor', v)}
         options={authors.map((a) => ({ value: a.slug, label: a.name, count: books.filter((b) => b.authorId === a.id).length }))} />
       <FilterGroup legend="Formato" name={`${scope}-formato`} value={filters.formato} onChange={(v) => update('formato', v)}
-        options={(Object.keys(formatLabels) as BookFormat[]).map((f) => ({ value: f, label: formatLabels[f] }))} />
+        options={(Object.keys(catalogFormatLabels) as CatalogFormat[]).map((f) => ({ value: f, label: catalogFormatLabels[f] }))} />
       <FilterGroup legend="Preço" name={`${scope}-preco`} value={filters.preco} onChange={(v) => update('preco', v)}
         options={(Object.keys(priceRanges) as PriceRange[]).map((k) => ({ value: k, label: priceRanges[k].label }))} />
     </FilterPanel>

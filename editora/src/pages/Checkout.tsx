@@ -8,7 +8,7 @@ import { OrderSummary } from '../components/checkout/OrderSummary';
 import { Button, ButtonLink } from '../components/ui/Button';
 import { EmptyState, Notice, Spinner } from '../components/ui/Feedback';
 import { Checkbox, SelectField, TextField } from '../components/ui/Form';
-import { deliveryMethods, paymentMethods, site } from '../config/site';
+import { deliveryMethods, digitalDelivery, findDeliveryMethod, paymentMethods, site } from '../config/site';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useCatalog } from '../context/CatalogContext';
@@ -26,7 +26,7 @@ export default function Checkout() {
   const { profile, loading: authLoading } = useAuth();
   const { loading: catalogLoading, reload } = useCatalog();
   const { clear } = useCart();
-  const { items } = useCartItems();
+  const { items, digitalOnly } = useCartItems();
   const navigate = useNavigate();
   useSeo({ title: 'Finalizar compra', noindex: true });
 
@@ -55,8 +55,12 @@ export default function Checkout() {
     if (profile) setForm((f) => ({ ...f, fullName: f.fullName || profile.fullName, email: f.email || profile.email, phone: f.phone || profile.phone }));
   }, [profile]);
 
-  const delivery = deliveryMethods.find((m) => m.id === form.deliveryMethod);
+  // Só livros digitais: entrega digital, sem portes nem morada.
+  const deliveryId = digitalOnly ? digitalDelivery.id : form.deliveryMethod;
+  const delivery = findDeliveryMethod(deliveryId);
   const totals = useMemo(() => computeTotals(items, delivery), [items, delivery]);
+  const physicalNet = items.filter((i) => i.edition === 'fisico').reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+  const hasDigital = items.some((i) => i.edition !== 'fisico');
 
   if (authLoading || catalogLoading) return <Spinner />;
 
@@ -78,12 +82,12 @@ export default function Checkout() {
   function buildInput() {
     return {
       customer: { fullName: form.fullName, email: form.email, phone: form.phone },
-      deliveryMethod: form.deliveryMethod,
+      deliveryMethod: deliveryId,
       paymentMethod: form.paymentMethod,
       address: delivery?.requiresAddress
         ? { country: form.country, city: form.city, line1: form.line1, line2: form.line2 || undefined, postalCode: form.postalCode || undefined }
         : {},
-      items: items.map((i) => ({ bookId: i.book.id, quantity: i.quantity })),
+      items: items.map((i) => ({ bookId: i.book.id, edition: i.edition, quantity: i.quantity })),
       acceptTerms: form.acceptTerms,
     };
   }
@@ -133,13 +137,13 @@ export default function Checkout() {
   const summaryItems = (
     <ul className="space-y-4">
       {items.map((i) => (
-        <li key={i.book.id} className="flex gap-3">
+        <li key={`${i.book.id}:${i.edition}`} className="flex gap-3">
           <div className="w-12 shrink-0">
             <BookCover book={i.book} size="xs" />
           </div>
           <div className="min-w-0 flex-1 text-sm">
             <p className="font-medium leading-snug text-fg">{i.book.title}</p>
-            <LinePricing quantity={i.quantity} unitPrice={i.unitPrice} listPrice={i.listPrice} />
+            <LinePricing quantity={i.quantity} unitPrice={i.unitPrice} listPrice={i.listPrice} edition={i.edition} />
           </div>
           <p className="text-sm font-medium">{formatMoney(lineTotal(i))}</p>
         </li>
@@ -183,11 +187,23 @@ export default function Checkout() {
                 </div>
               </fieldset>
 
+              {digitalOnly ? (
+                <fieldset>
+                  <legend className="mb-4 font-display text-2xl font-medium">Entrega</legend>
+                  <div className="rounded-card border border-line bg-surface p-4">
+                    <p className="flex justify-between gap-4 font-medium text-fg">
+                      {digitalDelivery.label}
+                      <span>Grátis</span>
+                    </p>
+                    <p className="mt-0.5 t-small text-muted">{digitalDelivery.description} Encontra os livros em «A minha conta → Biblioteca».</p>
+                  </div>
+                </fieldset>
+              ) : (
               <fieldset>
                 <legend className="mb-4 font-display text-2xl font-medium">Entrega</legend>
                 <div className="grid gap-3" role="radiogroup">
                   {deliveryMethods.map((m) => {
-                    const cost = m.freeFrom !== null && totals.subtotal - totals.discount >= m.freeFrom ? 0 : m.cost;
+                    const cost = m.freeFrom !== null && physicalNet >= m.freeFrom ? 0 : m.cost;
                     return (
                       <label key={m.id} className={cn('flex cursor-pointer items-start gap-3 rounded-card border bg-surface p-4 transition', form.deliveryMethod === m.id ? 'border-secondary ring-1 ring-secondary' : 'border-line hover:border-line-strong')}>
                         <input type="radio" name="delivery" value={m.id} checked={form.deliveryMethod === m.id} onChange={set('deliveryMethod')} className="mt-1 accent-[#8C2F1B]" />
@@ -208,7 +224,11 @@ export default function Checkout() {
                 {items.some((i) => i.isPreorder) && (
                   <p className="mt-3 text-sm text-muted">Os livros em pré-venda são enviados a partir da data prevista em cada livro.</p>
                 )}
+                {hasDigital && (
+                  <p className="mt-3 text-sm text-muted">Os e-books e audiolivros não têm portes: ficam na sua biblioteca assim que o pagamento for confirmado.</p>
+                )}
               </fieldset>
+              )}
 
               {delivery?.requiresAddress && (
                 <fieldset className="space-y-4">
@@ -297,7 +317,7 @@ export default function Checkout() {
 }
 
 function ReviewStep({ input, onEdit }: { input: CheckoutInput; onEdit: () => void }) {
-  const delivery = deliveryMethods.find((m) => m.id === input.deliveryMethod);
+  const delivery = findDeliveryMethod(input.deliveryMethod);
   const payment = paymentMethods.find((m) => m.id === input.paymentMethod);
   return (
     <section aria-labelledby="revisao-titulo" className="space-y-6">

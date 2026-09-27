@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { deliveryMethods, paymentMethods } from '../config/site';
+import { digitalDelivery, findDeliveryMethod, paymentMethods } from '../config/site';
 
 const phoneRegex = /^\+?[0-9 ()-]{7,20}$/;
 
@@ -20,18 +20,25 @@ export const addressSchema = z.object({
 export const checkoutSchema = z
   .object({
     customer: customerSchema,
-    deliveryMethod: z.string().refine((id) => deliveryMethods.some((m) => m.id === id), 'Escolha o método de entrega.'),
+    deliveryMethod: z.string().refine((id) => Boolean(findDeliveryMethod(id)), 'Escolha o método de entrega.'),
     paymentMethod: z
       .string()
       .refine((id) => paymentMethods.some((m) => m.id === id && m.enabled), 'Escolha o método de pagamento.'),
     address: addressSchema.partial(),
     items: z
-      .array(z.object({ bookId: z.string().min(1), quantity: z.number().int().min(1).max(10) }))
+      .array(z.object({ bookId: z.string().min(1), edition: z.enum(['fisico', 'ebook', 'audiolivro']), quantity: z.number().int().min(1).max(10) }))
       .min(1, 'O carrinho está vazio.'),
     acceptTerms: z.literal(true, { error: 'Aceite as condições para continuar.' }),
   })
   .superRefine((value, ctx) => {
-    const method = deliveryMethods.find((m) => m.id === value.deliveryMethod);
+    const physical = value.items.some((i) => i.edition === 'fisico');
+    if (physical && value.deliveryMethod === digitalDelivery.id) {
+      ctx.addIssue({ code: 'custom', message: 'Escolha o método de entrega.', path: ['deliveryMethod'] });
+    }
+    if (!physical && value.deliveryMethod !== digitalDelivery.id) {
+      ctx.addIssue({ code: 'custom', message: 'Os livros digitais não têm entrega física.', path: ['deliveryMethod'] });
+    }
+    const method = findDeliveryMethod(value.deliveryMethod);
     if (!method?.requiresAddress) return;
     const result = addressSchema.safeParse(value.address);
     if (!result.success) {

@@ -5,11 +5,12 @@
 
 import { canTransition, nextPaymentStatus, orderStatusAfterPayment } from '../lib/orderStatus';
 import { OrderRejected, generateOrderNumber, priceOrder } from '../lib/orderEngine';
-import type { Author, Book, NewsletterSubscriber, Order, OrderStatus, PaymentStatus, Preorder, Profile } from '../types';
+import type { Author, Book, DigitalFile, LibraryItem, NewsletterSubscriber, Order, OrderStatus, PaymentStatus, Preorder, Profile } from '../types';
 import { ApiError, type Api, type Catalog, type CustomerSummary } from './api';
 import { buildDemoCatalog } from './demoSeed';
 
-const STORAGE_KEY = 'editora-demo-v1';
+// v2: edições digitais (e-book/audiolivro). Um estado v1 antigo é ignorado.
+const STORAGE_KEY = 'editora-demo-v2';
 
 interface DemoUser extends Profile {
   password: string;
@@ -96,6 +97,7 @@ function requireAdmin(state: DemoState): DemoUser {
 /** Devolve stock/reservas quando uma encomenda ativa é cancelada ou reembolsada. */
 function releaseStock(state: DemoState, order: Order) {
   for (const item of order.items) {
+    if (item.edition !== 'fisico') continue; // digitais não têm stock
     if (item.isPreorder) {
       const pre = state.preorders.find((p) => p.bookId === item.bookId);
       if (pre) pre.reserved = Math.max(0, pre.reserved - item.quantity);
@@ -111,6 +113,19 @@ function applyStatus(state: DemoState, order: Order, next: OrderStatus) {
   const nowInactive = next === 'cancelado' || next === 'reembolsado';
   if (wasActive && nowInactive) releaseStock(state, order);
   order.status = next;
+  // Só digital: não há nada para enviar — fica entregue ao confirmar o pagamento.
+  if (next === 'pagamento_confirmado' && order.items.every((i) => i.edition !== 'fisico')) order.status = 'entregue';
+}
+
+const PAID: OrderStatus[] = ['pagamento_confirmado', 'em_preparacao', 'enviado', 'entregue'];
+
+function ownedDigital(state: DemoState, userId: string): Set<string> {
+  const owned = new Set<string>();
+  for (const o of state.orders) {
+    if (o.userId !== userId || !PAID.includes(o.status)) continue;
+    for (const i of o.items) if (i.edition !== 'fisico') owned.add(`${i.bookId}:${i.edition}`);
+  }
+  return owned;
 }
 
 function applyPayment(state: DemoState, order: Order, incoming: PaymentStatus) {
@@ -129,7 +144,13 @@ export function createDemoApi(): Api {
       const s = load();
       const books = s.books.filter((b) => b.published);
       const ids = new Set(books.map((b) => b.id));
-      return delay({ books, authors: s.authors, categories: s.categories, preorders: s.preorders.filter((p) => ids.has(p.bookId)) });
+      return delay({
+        books,
+        authors: s.authors,
+        categories: s.categories,
+        preorders: s.preorders.filter((p) => ids.has(p.bookId)),
+        digitalFiles: s.digitalFiles.filter((f) => ids.has(f.bookId)),
+      });
     },
 
     async subscribeNewsletter(email) {
@@ -195,12 +216,13 @@ export function createDemoApi(): Api {
       const user = requireUser(s);
       let priced;
       try {
-        priced = priceOrder(input.items, input.deliveryMethod, s.books, s.preorders);
+        priced = priceOrder(input.items, input.deliveryMethod, s.books, s.preorders, new Date(), s.digitalFiles, ownedDigital(s, user.id));
       } catch (err) {
         if (err instanceof OrderRejected) throw new ApiError(err.message);
         throw err;
       }
       for (const item of priced.items) {
+        if (item.edition !== 'fisico') continue;
         if (item.isPreorder) s.preorders.find((p) => p.bookId === item.bookId)!.reserved += item.quantity;
         else s.books.find((b) => b.id === item.bookId)!.stock -= item.quantity;
       }
@@ -265,6 +287,34 @@ export function createDemoApi(): Api {
       return delay(s.orders.filter((o) => o.userId === user.id));
     },
 
+    async listMyLibrary() {
+      const s = load();
+      const user = requireUser(s);
+      const seen = new Set<string>();
+      const items: LibraryItem[] = [];
+      for (const o of [...s.orders].reverse()) {
+        if (o.userId !== user.id || !PAID.includes(o.status)) continue;
+        for (const i of o.items) {
+          const key = `${i.bookId}:${i.edition}`;
+          if (i.edition === 'fisico' || seen.has(key)) continue;
+          seen.add(key);
+          items.push({ bookId: i.bookId, kind: i.edition, purchasedAt: o.createdAt, orderNumber: o.number });
+        }
+      }
+      return delay(items);
+    },
+
+    async getDigitalFileUrl(fileId) {
+      const s = load();
+      const user = requireUser(s);
+      const file = s.digitalFiles.find((f) => f.id === fileId);
+      if (!file) throw new ApiError('Ficheiro não encontrado.');
+      if (user.role !== 'admin' && !ownedDigital(s, user.id).has(`${file.bookId}:${file.kind}`)) {
+        throw new ApiError('Não tem acesso a este ficheiro. Se já pagou, aguarde a confirmação do pagamento.');
+      }
+      return file.storagePath; // na demo, o próprio ficheiro (data URL)
+    },
+
     async getMyOrder(orderId) {
       const s = load();
       const user = requireUser(s);
@@ -275,7 +325,7 @@ export function createDemoApi(): Api {
       async getCatalog() {
         const s = load();
         requireAdmin(s);
-        return delay({ books: s.books, authors: s.authors, categories: s.categories, preorders: s.preorders });
+        return delay({ books: s.books, authors: s.authors, categories: s.categories, preorders: s.preorders, digitalFiles: s.digitalFiles });
       },
 
       async saveBook(input) {
@@ -389,6 +439,38 @@ export function createDemoApi(): Api {
         const s = load();
         requireAdmin(s);
         return delay(s.subscribers);
+      },
+
+      async uploadDigitalFile(bookId, kind, file, title) {
+        const s = load();
+        requireAdmin(s);
+        if (file.size > 3_000_000) throw new ApiError('Na demonstração, os ficheiros estão limitados a 3 MB.');
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new ApiError('Não foi possível ler o ficheiro.'));
+          reader.readAsDataURL(file);
+        });
+        const position = s.digitalFiles.filter((f) => f.bookId === bookId && f.kind === kind).length + 1;
+        const created: DigitalFile = { id: uid('df'), bookId, kind, title, position, mimeType: file.type, sizeBytes: file.size, storagePath: dataUrl };
+        s.digitalFiles.push(created);
+        save(s);
+        return delay(created);
+      },
+
+      async deleteDigitalFile(fileId) {
+        const s = load();
+        requireAdmin(s);
+        s.digitalFiles = s.digitalFiles.filter((f) => f.id !== fileId);
+        save(s);
+      },
+
+      async renameDigitalFile(fileId, title, position) {
+        const s = load();
+        requireAdmin(s);
+        const file = s.digitalFiles.find((f) => f.id === fileId);
+        if (file) Object.assign(file, { title, position });
+        save(s);
       },
 
       async uploadImage(file) {

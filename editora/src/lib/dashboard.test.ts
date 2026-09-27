@@ -14,7 +14,7 @@ function order(id: string, status: OrderStatus, total: number, items: [string, n
     customerPhone: '',
     shippingAddress: { country: '', city: '', line1: '' },
     deliveryMethod: 'luanda',
-    items: items.map(([bookId, quantity, unitPrice]) => ({ id: `${id}-${bookId}`, bookId, title: bookId, quantity, unitPrice, listPrice: unitPrice, isPreorder: false })),
+    items: items.map(([bookId, quantity, unitPrice]) => ({ id: `${id}-${bookId}`, bookId, title: bookId, quantity, unitPrice, listPrice: unitPrice, isPreorder: false, edition: 'fisico' as const })),
     subtotal: total,
     shippingCost: 0,
     discount: 0,

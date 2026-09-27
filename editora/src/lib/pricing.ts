@@ -3,6 +3,8 @@ import type { DeliveryMethod } from '../config/site';
 export interface PricedLine {
   unitPrice: number;
   quantity: number;
+  /** Linhas digitais não contam para os portes. Por omissão, físico. */
+  edition?: 'fisico' | 'ebook' | 'audiolivro';
 }
 
 export interface Totals {
@@ -30,6 +32,9 @@ export function computeTotals(
   const gross = lines.reduce((sum, l) => sum + l.listPrice * l.quantity, 0);
   const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
   const discount = Math.max(0, gross - subtotal);
-  const shipping = shippingCost(method, subtotal);
+  const physical = lines.filter((l) => !l.edition || l.edition === 'fisico');
+  // Portes só se aplicam aos livros físicos (e o limite de portes grátis também).
+  const physicalNet = physical.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+  const shipping = physical.length ? shippingCost(method, physicalNet) : 0;
   return { subtotal: gross, shipping, discount, total: subtotal + shipping };
 }

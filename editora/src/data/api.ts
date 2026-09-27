@@ -3,6 +3,9 @@ import type {
   Book,
   BookFormat,
   Category,
+  DigitalFile,
+  DigitalKind,
+  LibraryItem,
   NewsletterSubscriber,
   Order,
   OrderStatus,
@@ -17,6 +20,8 @@ export interface Catalog {
   authors: Author[];
   categories: Category[];
   preorders: Preorder[];
+  /** Ficheiros das edições digitais (metadados; o conteúdo é privado). */
+  digitalFiles: DigitalFile[];
 }
 
 export type PlaceOrderInput = Omit<CheckoutInput, 'acceptTerms'>;
@@ -39,6 +44,10 @@ export interface BookInput {
   price: number;
   compareAtPrice: number | null;
   stock: number;
+  ebookPrice: number | null;
+  audiobookPrice: number | null;
+  audiobookNarrator: string | null;
+  audiobookMinutes: number | null;
   coverUrl: string | null;
   gallery: string[];
   coverColor: string;
@@ -85,6 +94,10 @@ export interface Api {
   cancelMyOrder(orderId: string): Promise<void>;
   listMyOrders(): Promise<Order[]>;
   getMyOrder(orderId: string): Promise<Order | null>;
+  /** Edições digitais compradas e pagas pelo cliente. */
+  listMyLibrary(): Promise<LibraryItem[]>;
+  /** Link temporário para ler/ouvir/descarregar um ficheiro já comprado. */
+  getDigitalFileUrl(fileId: string): Promise<string>;
 
   admin: {
     getCatalog(): Promise<Catalog>;
@@ -100,5 +113,8 @@ export interface Api {
     listCustomers(): Promise<CustomerSummary[]>;
     listSubscribers(): Promise<NewsletterSubscriber[]>;
     uploadImage(file: File, folder: 'covers' | 'authors'): Promise<string>;
+    uploadDigitalFile(bookId: string, kind: DigitalKind, file: File, title: string): Promise<DigitalFile>;
+    deleteDigitalFile(fileId: string): Promise<void>;
+    renameDigitalFile(fileId: string, title: string, position: number): Promise<void>;
   };
 }

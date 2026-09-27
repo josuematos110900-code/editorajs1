@@ -14,12 +14,13 @@ import { SectionHeader } from '../components/ui/SectionHeader';
 import { site } from '../config/site';
 import { useCatalog } from '../context/CatalogContext';
 import { formatDate } from '../lib/format';
-import { getAvailability, getPreorderState } from '../lib/preorder';
+import { getPreorderState } from '../lib/preorder';
+import { cardAvailability } from '../lib/editions';
 import { useSeo } from '../lib/seo';
 import type { Book, Preorder } from '../types';
 
 export default function Home() {
-  const { books, authors, preorders, loading, error, bookById, preorderFor } = useCatalog();
+  const { books, authors, preorders, loading, error, bookById, preorderFor, digitalFiles } = useCatalog();
   useSeo({
     jsonLd: { '@context': 'https://schema.org', '@type': 'Organization', name: site.name, url: typeof window !== 'undefined' ? window.location.origin : undefined, logo: site.logo },
   });
@@ -39,7 +40,7 @@ export default function Home() {
     .filter((b) => b.publicationDate && b.publicationDate <= today)
     .sort((a, b) => (b.publicationDate ?? '').localeCompare(a.publicationDate ?? ''))
     .slice(0, 4);
-  const available = books.filter((b) => getAvailability(b, preorderFor(b.id)) === 'disponivel' && !releases.includes(b)).slice(0, 4);
+  const available = books.filter((b) => cardAvailability(b, preorderFor(b.id), digitalFiles) === 'disponivel' && !releases.includes(b)).slice(0, 4);
 
   return (
     <>

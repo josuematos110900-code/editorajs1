@@ -1,5 +1,5 @@
 import { createClient, type PostgrestError, type SupabaseClient } from '@supabase/supabase-js';
-import type { Author, Book, BookFormat, Category, NewsletterSubscriber, Order, OrderStatus, PaymentStatus, Preorder, Profile } from '../types';
+import type { Author, Book, BookFormat, Category, DigitalFile, DigitalKind, Edition, LibraryItem, NewsletterSubscriber, Order, OrderStatus, PaymentStatus, Preorder, Profile } from '../types';
 import { ApiError, type Api, type AuthorInput, type BookInput, type Catalog, type CustomerSummary, type PreorderInput } from './api';
 
 const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
@@ -28,6 +28,10 @@ interface BookRow {
   price: number;
   compare_at_price: number | null;
   stock: number;
+  ebook_price: number | null;
+  audiobook_price: number | null;
+  audiobook_narrator: string | null;
+  audiobook_minutes: number | null;
   cover_url: string | null;
   gallery: string[];
   cover_color: string;
@@ -58,6 +62,21 @@ interface PreorderRow {
   reserved: number;
 }
 
+interface DigitalFileRow {
+  id: string;
+  book_id: string;
+  kind: DigitalKind;
+  title: string;
+  position: number;
+  storage_path: string;
+  mime_type: string;
+  size_bytes: number | null;
+}
+
+function toDigitalFile(r: DigitalFileRow): DigitalFile {
+  return { id: r.id, bookId: r.book_id, kind: r.kind, title: r.title, position: r.position, storagePath: r.storage_path, mimeType: r.mime_type, sizeBytes: r.size_bytes };
+}
+
 interface ProfileRow {
   id: string;
   email: string;
@@ -82,7 +101,7 @@ interface OrderRow {
   status: OrderStatus;
   created_at: string;
   address: { country: string; city: string; line1: string; line2: string | null; postal_code: string | null } | null;
-  order_items: { id: string; book_id: string; title: string; quantity: number; unit_price: number; list_price: number; is_preorder: boolean }[];
+  order_items: { id: string; book_id: string; title: string; quantity: number; unit_price: number; list_price: number; is_preorder: boolean; edition: Edition }[];
   payments:
     | { id: string; method: string; status: PaymentStatus; amount: number; provider_reference: string | null; updated_at: string }
     | { id: string; method: string; status: PaymentStatus; amount: number; provider_reference: string | null; updated_at: string }[]
@@ -92,7 +111,7 @@ interface OrderRow {
 const ORDER_SELECT =
   'id, number, user_id, customer_name, customer_email, customer_phone, delivery_method, subtotal, shipping_cost, discount, total, status, created_at, ' +
   'address:addresses(country, city, line1, line2, postal_code), ' +
-  'order_items(id, book_id, title, quantity, unit_price, list_price, is_preorder), ' +
+  'order_items(id, book_id, title, quantity, unit_price, list_price, is_preorder, edition), ' +
   'payments(id, method, status, amount, provider_reference, updated_at)';
 
 function toBook(r: BookRow): Book {
@@ -114,6 +133,10 @@ function toBook(r: BookRow): Book {
     price: r.price,
     compareAtPrice: r.compare_at_price,
     stock: r.stock,
+    ebookPrice: r.ebook_price,
+    audiobookPrice: r.audiobook_price,
+    audiobookNarrator: r.audiobook_narrator,
+    audiobookMinutes: r.audiobook_minutes,
     coverUrl: r.cover_url,
     gallery: r.gallery ?? [],
     coverColor: r.cover_color,
@@ -141,6 +164,10 @@ function fromBook(b: BookInput) {
     price: b.price,
     compare_at_price: b.compareAtPrice,
     stock: b.stock,
+    ebook_price: b.ebookPrice,
+    audiobook_price: b.audiobookPrice,
+    audiobook_narrator: b.audiobookNarrator,
+    audiobook_minutes: b.audiobookMinutes,
     cover_url: b.coverUrl,
     gallery: b.gallery,
     cover_color: b.coverColor,
@@ -195,6 +222,7 @@ function toOrder(r: OrderRow): Order {
       quantity: i.quantity,
       unitPrice: i.unit_price,
       listPrice: i.list_price,
+      edition: i.edition ?? 'fisico',
       isPreorder: i.is_preorder,
     })),
     subtotal: r.subtotal,
@@ -240,19 +268,21 @@ function translateAuthError(message: string): string {
 }
 
 async function loadCatalog(client: SupabaseClient): Promise<Catalog> {
-  const [books, authors, categories, preorders] = await Promise.all([
+  const [books, authors, categories, preorders, files] = await Promise.all([
     client.from('books').select('*').order('publication_date', { ascending: false }),
     client.from('authors').select('id, slug, name, bio, photo_url, is_demo').order('name'),
     client.from('categories').select('id, slug, name').order('name'),
     client.from('preorders').select('*'),
+    client.from('digital_files').select('id, book_id, kind, title, position, storage_path, mime_type, size_bytes').order('position'),
   ]);
-  const error = books.error ?? authors.error ?? categories.error ?? preorders.error;
+  const error = books.error ?? authors.error ?? categories.error ?? preorders.error ?? files.error;
   if (error) fail(error, 'Não foi possível carregar o catálogo.');
   return {
     books: (books.data as BookRow[]).map(toBook),
     authors: (authors.data as AuthorRow[]).map(toAuthor),
     categories: categories.data as Category[],
     preorders: (preorders.data as PreorderRow[]).map(toPreorder),
+    digitalFiles: (files.data as DigitalFileRow[]).map(toDigitalFile),
   };
 }
 
@@ -283,7 +313,12 @@ export function createSupabaseApi(): Api {
       const catalog = await loadCatalog(client);
       const books = catalog.books.filter((b) => b.published);
       const ids = new Set(books.map((b) => b.id));
-      return { ...catalog, books, preorders: catalog.preorders.filter((p) => ids.has(p.bookId)) };
+      return {
+        ...catalog,
+        books,
+        preorders: catalog.preorders.filter((p) => ids.has(p.bookId)),
+        digitalFiles: catalog.digitalFiles.filter((f) => ids.has(f.bookId)),
+      };
     },
 
     async subscribeNewsletter(email) {
@@ -333,7 +368,7 @@ export function createSupabaseApi(): Api {
 
     async placeOrder(input) {
       const { data, error } = await client.rpc('place_order', {
-        p_items: input.items.map((i) => ({ book_id: i.bookId, quantity: i.quantity })),
+        p_items: input.items.map((i) => ({ book_id: i.bookId, quantity: i.quantity, edition: i.edition })),
         p_customer: input.customer,
         p_address: input.address,
         p_delivery_method: input.deliveryMethod,
@@ -363,6 +398,23 @@ export function createSupabaseApi(): Api {
       const { data, error } = await client.from('orders').select(ORDER_SELECT).eq('user_id', id).order('created_at', { ascending: false });
       if (error) fail(error);
       return (data as unknown as OrderRow[]).map(toOrder);
+    },
+
+    async listMyLibrary() {
+      const { data, error } = await client.rpc('my_library');
+      if (error) fail(error);
+      return (data as { book_id: string; kind: DigitalKind; purchased_at: string; order_number: string }[]).map(
+        (r): LibraryItem => ({ bookId: r.book_id, kind: r.kind, purchasedAt: r.purchased_at, orderNumber: r.order_number }),
+      );
+    },
+
+    async getDigitalFileUrl(fileId) {
+      const { data: file, error } = await client.from('digital_files').select('storage_path').eq('id', fileId).maybeSingle();
+      if (error || !file) fail(error, 'Ficheiro não encontrado.');
+      // O Storage só assina o link se as políticas RLS confirmarem a compra.
+      const { data, error: signError } = await client.storage.from('digital').createSignedUrl((file as { storage_path: string }).storage_path, 60 * 60);
+      if (signError || !data?.signedUrl) throw new ApiError('Não tem acesso a este ficheiro. Se já pagou, aguarde a confirmação do pagamento.');
+      return data.signedUrl;
     },
 
     async getMyOrder(orderId) {
@@ -463,6 +515,39 @@ export function createSupabaseApi(): Api {
         return (data as { id: string; email: string; created_at: string }[]).map(
           (r): NewsletterSubscriber => ({ id: r.id, email: r.email, createdAt: r.created_at }),
         );
+      },
+
+      async uploadDigitalFile(bookId, kind, file, title) {
+        const allowed = ['application/pdf', 'application/epub+zip', 'audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/wav', 'audio/ogg'];
+        if (!allowed.includes(file.type)) throw new ApiError(kind === 'ebook' ? 'Use ficheiros PDF ou EPUB.' : 'Use ficheiros de áudio MP3, M4A, AAC, WAV ou OGG.');
+        if (file.size > 500 * 1024 * 1024) throw new ApiError('O ficheiro não pode ter mais de 500 MB.');
+        const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const path = `${bookId}/${kind}/${crypto.randomUUID()}.${ext}`;
+        const { error: upError } = await client.storage.from('digital').upload(path, file, { upsert: false, contentType: file.type });
+        if (upError) fail({ message: upError.message }, 'Não foi possível carregar o ficheiro.');
+        const { count } = await client.from('digital_files').select('id', { count: 'exact', head: true }).eq('book_id', bookId).eq('kind', kind);
+        const { data, error } = await client
+          .from('digital_files')
+          .insert({ book_id: bookId, kind, title, position: (count ?? 0) + 1, storage_path: path, mime_type: file.type, size_bytes: file.size })
+          .select('*')
+          .single();
+        if (error) {
+          await client.storage.from('digital').remove([path]);
+          fail(error, 'Não foi possível registar o ficheiro.');
+        }
+        return toDigitalFile(data as DigitalFileRow);
+      },
+
+      async deleteDigitalFile(fileId) {
+        const { data: file } = await client.from('digital_files').select('storage_path').eq('id', fileId).maybeSingle();
+        const { error } = await client.from('digital_files').delete().eq('id', fileId);
+        if (error) fail(error);
+        if (file) await client.storage.from('digital').remove([(file as { storage_path: string }).storage_path]);
+      },
+
+      async renameDigitalFile(fileId, title, position) {
+        const { error } = await client.from('digital_files').update({ title, position }).eq('id', fileId);
+        if (error) fail(error);
       },
 
       async uploadImage(file, folder) {

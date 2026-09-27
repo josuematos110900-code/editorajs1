@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useCatalog } from '../../context/CatalogContext';
 import { cn } from '../../lib/cn';
-import { effectivePrice, getAvailability } from '../../lib/preorder';
+import { cardAvailability, cardPrice, digitalAvailable } from '../../lib/editions';
 import type { Book } from '../../types';
 import { AvailabilityBadge } from './Badges';
 import { BookCover } from './BookCover';
@@ -12,12 +12,14 @@ const ctaLabel = { pre_venda: 'Reservar livro', brevemente: 'Ver lançamento', d
 
 /** Cartão de livro: a capa domina; estado, título, autor, preço e uma ação. */
 export function BookCard({ book, priority }: { book: Book; priority?: boolean }) {
-  const { authorById, preorderFor } = useCatalog();
+  const { authorById, preorderFor, digitalFiles } = useCatalog();
   const author = authorById(book.authorId);
   const preorder = preorderFor(book.id);
-  const availability = getAvailability(book, preorder);
-  const price = effectivePrice(book, preorder);
-  const previous = price < book.price ? book.price : book.compareAtPrice;
+  const availability = cardAvailability(book, preorder, digitalFiles);
+  const shown = cardPrice(book, preorder, digitalFiles);
+  const price = shown.value;
+  const previous = price < book.price && preorder ? book.price : shown.from ? null : book.compareAtPrice && book.compareAtPrice > price ? book.compareAtPrice : null;
+  const digital = [digitalAvailable(book, 'ebook', digitalFiles) && 'E-book', digitalAvailable(book, 'audiolivro', digitalFiles) && 'Audiolivro'].filter(Boolean) as string[];
   const href = availability === 'pre_venda' || availability === 'brevemente' ? `/pre-venda/${book.slug}` : `/livros/${book.slug}`;
 
   return (
@@ -33,7 +35,11 @@ export function BookCard({ book, priority }: { book: Book; priority?: boolean })
           </Link>
         </h3>
         {author && <p className="mt-0.5 t-small text-muted">{author.name}</p>}
-        <Price value={price} previous={previous} size="sm" className="mt-2" />
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-1.5">
+          {shown.from && <span className="text-xs text-muted">desde</span>}
+          <Price value={price} previous={previous} size="sm" />
+        </div>
+        {digital.length > 0 && <p className="mt-1 text-xs text-muted">Também em {digital.join(' e ').toLowerCase()}</p>}
         <span className="mt-3 inline-flex items-center gap-1 t-small font-medium text-fg/85 group-hover:text-primary" aria-hidden="true">
           {ctaLabel[availability]} <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
         </span>

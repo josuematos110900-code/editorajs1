@@ -3,7 +3,7 @@
 // um ISBN real. Nada disto deve ir para produção: em Supabase, o seed
 // equivalente está em supabase/seed.sql e marca tudo com is_demo = true.
 
-import type { Author, Book, Category, Preorder } from '../types';
+import type { Author, Book, Category, DigitalFile, Preorder } from '../types';
 
 const DAY = 86_400_000;
 
@@ -59,7 +59,9 @@ export const demoAuthors: Author[] = [
   },
 ];
 
-interface SeedBook extends Omit<Book, 'createdAt' | 'publicationDate'> {
+type DigitalFields = 'ebookPrice' | 'audiobookPrice' | 'audiobookNarrator' | 'audiobookMinutes';
+
+interface SeedBook extends Omit<Book, 'createdAt' | 'publicationDate' | DigitalFields>, Partial<Pick<Book, DigitalFields>> {
   publishedInDays: number;
 }
 
@@ -132,10 +134,11 @@ const seedBooks: SeedBook[] = [
     language: 'Português',
     publisher: 'Editora Núcleo Digital',
     publishedInDays: -120,
-    formats: ['capa_mole', 'ebook'],
+    formats: ['capa_mole'],
     price: 9500,
     compareAtPrice: 11000,
     stock: 40,
+    ebookPrice: 5900,
     coverUrl: null,
     gallery: [],
     coverColor: '#B8923A',
@@ -160,6 +163,9 @@ const seedBooks: SeedBook[] = [
     price: 8000,
     compareAtPrice: null,
     stock: 3,
+    audiobookPrice: 4500,
+    audiobookNarrator: 'O autor (demonstração)',
+    audiobookMinutes: 58,
     coverUrl: null,
     gallery: [],
     coverColor: '#2A2723',
@@ -228,10 +234,14 @@ const seedBooks: SeedBook[] = [
     language: 'Português',
     publisher: 'Editora Núcleo Digital',
     publishedInDays: -400,
-    formats: ['capa_mole', 'ebook'],
+    formats: ['capa_mole'],
     price: 10500,
     compareAtPrice: null,
     stock: 25,
+    ebookPrice: 6500,
+    audiobookPrice: 7900,
+    audiobookNarrator: 'Narradora de demonstração',
+    audiobookMinutes: 412,
     coverUrl: null,
     gallery: [],
     coverColor: '#3D5A80',
@@ -266,6 +276,10 @@ const seedBooks: SeedBook[] = [
 
 export function buildDemoCatalog(now: number = Date.now()) {
   const books: Book[] = seedBooks.map(({ publishedInDays, ...book }) => ({
+    ebookPrice: null,
+    audiobookPrice: null,
+    audiobookNarrator: null,
+    audiobookMinutes: null,
     ...book,
     publicationDate: dateFromNow(publishedInDays, now),
     createdAt: isoFromNow(-30, now),
@@ -310,5 +324,43 @@ export function buildDemoCatalog(now: number = Date.now()) {
     },
   ];
 
-  return { books, authors: demoAuthors, categories: demoCategories, preorders };
+  return { books, authors: demoAuthors, categories: demoCategories, preorders, digitalFiles: demoDigitalFiles };
 }
+
+// Ficheiros digitais de DEMONSTRAÇÃO: um PDF de uma página e faixas de áudio
+// de 1 segundo em silêncio, gerados aqui — só para se poder testar a compra e
+// a biblioteca sem Supabase. Os ficheiros reais carregam-se pelo painel.
+const DEMO_PDF =
+  'data:application/pdf;base64,' +
+  btoa(
+    '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj ' +
+      '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 200]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj ' +
+      '4 0 obj<</Length 58>>stream\nBT /F1 14 Tf 30 100 Td (E-book de demonstracao) Tj ET\nendstream endobj ' +
+      '5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF',
+  );
+
+function silentWav(seconds = 1, rate = 8000): string {
+  const samples = seconds * rate;
+  const bytes = new Uint8Array(44 + samples);
+  const view = new DataView(bytes.buffer);
+  const ascii = (o: number, t: string) => [...t].forEach((c, i) => view.setUint8(o + i, c.charCodeAt(0)));
+  ascii(0, 'RIFF'); view.setUint32(4, 36 + samples, true); ascii(8, 'WAVE'); ascii(12, 'fmt ');
+  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  view.setUint32(24, rate, true); view.setUint32(28, rate, true); view.setUint16(32, 1, true); view.setUint16(34, 8, true);
+  ascii(36, 'data'); view.setUint32(40, samples, true);
+  bytes.fill(128, 44);
+  let bin = '';
+  bytes.forEach((b) => (bin += String.fromCharCode(b)));
+  return 'data:audio/wav;base64,' + btoa(bin);
+}
+
+const DEMO_WAV = typeof btoa === 'function' ? silentWav() : '';
+
+export const demoDigitalFiles: DigitalFile[] = [
+  { id: 'df-sala-pdf', bookId: 'bk-sala', kind: 'ebook', title: 'A Sala de Aula Viva (PDF)', position: 1, mimeType: 'application/pdf', sizeBytes: 600, storagePath: DEMO_PDF },
+  { id: 'df-mares-pdf', bookId: 'bk-mares', kind: 'ebook', title: 'Marés de Benguela (PDF)', position: 1, mimeType: 'application/pdf', sizeBytes: 600, storagePath: DEMO_PDF },
+  { id: 'df-mares-a1', bookId: 'bk-mares', kind: 'audiolivro', title: 'Capítulo 1 — A baía', position: 1, mimeType: 'audio/wav', sizeBytes: 8044, storagePath: DEMO_WAV },
+  { id: 'df-mares-a2', bookId: 'bk-mares', kind: 'audiolivro', title: 'Capítulo 2 — O verão', position: 2, mimeType: 'audio/wav', sizeBytes: 8044, storagePath: DEMO_WAV },
+  { id: 'df-cartas-a1', bookId: 'bk-cartas', kind: 'audiolivro', title: 'Poemas 1–20', position: 1, mimeType: 'audio/wav', sizeBytes: 8044, storagePath: DEMO_WAV },
+  { id: 'df-cartas-a2', bookId: 'bk-cartas', kind: 'audiolivro', title: 'Poemas 21–40', position: 2, mimeType: 'audio/wav', sizeBytes: 8044, storagePath: DEMO_WAV },
+];

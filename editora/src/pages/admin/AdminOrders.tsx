@@ -7,7 +7,7 @@ import { OrderStatusBadge, PaymentStatusText } from '../../components/OrderStatu
 import { Button } from '../../components/ui/Button';
 import { EmptyState, Notice, Spinner } from '../../components/ui/Feedback';
 import { Modal } from '../../components/ui/Modal';
-import { deliveryMethods, paymentMethods } from '../../config/site';
+import { findDeliveryMethod, paymentMethods } from '../../config/site';
 import { useCatalog } from '../../context/CatalogContext';
 import { api } from '../../data';
 import { cn } from '../../lib/cn';
@@ -112,7 +112,7 @@ function OrderDetail({ order, onChanged }: { order: Order; onChanged: () => void
   const [error, setError] = useState('');
   const next = allowedTransitions(order.status);
   const payment = paymentMethods.find((m) => m.id === order.payment.method);
-  const delivery = deliveryMethods.find((m) => m.id === order.deliveryMethod);
+  const delivery = findDeliveryMethod(order.deliveryMethod);
 
   async function run(fn: () => Promise<void>) {
     setBusy(true);
@@ -211,7 +211,7 @@ function OrderDetail({ order, onChanged }: { order: Order; onChanged: () => void
               <span>
                 {i.title}
                 {i.isPreorder && <span className="ml-2 text-xs font-semibold text-primary">PRÉ-VENDA</span>}
-                <LinePricing quantity={i.quantity} unitPrice={i.unitPrice} listPrice={i.listPrice} />
+                <LinePricing quantity={i.quantity} unitPrice={i.unitPrice} listPrice={i.listPrice} edition={i.edition} />
               </span>
               <span className="tabular-nums">{formatMoney(lineTotal(i))}</span>
             </li>

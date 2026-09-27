@@ -14,20 +14,28 @@ import { useCatalog } from '../context/CatalogContext';
 import { site } from '../config/site';
 import { cn } from '../lib/cn';
 import { formatDate, formatLabels } from '../lib/format';
-import { effectivePrice, getAvailability } from '../lib/preorder';
+import { getAvailability } from '../lib/preorder';
+import { cardAvailability, cardPrice, editionLabels, editionOffers, formatDuration, hasPhysical } from '../lib/editions';
+import { useLibrary } from '../lib/useLibrary';
 import { absoluteUrl, useSeo } from '../lib/seo';
 import NotFound from './NotFound';
 
 export default function BookPage() {
   const { slug = '' } = useParams();
-  const { loading, bookBySlug, authorById, categoryById, preorderFor, books } = useCatalog();
+  const { loading, bookBySlug, authorById, categoryById, preorderFor, books, digitalFiles, filesFor } = useCatalog();
+  const { ownedFor } = useLibrary();
   const book = bookBySlug(slug);
   const author = book ? authorById(book.authorId) : undefined;
   const preorder = book ? preorderFor(book.id) : undefined;
   const [image, setImage] = useState(0);
 
-  const availability = book ? getAvailability(book, preorder) : 'esgotado';
-  const price = book ? effectivePrice(book, preorder) : 0;
+  const availability = book ? cardAvailability(book, preorder, digitalFiles) : 'esgotado';
+  const physicalAvailability = book && hasPhysical(book) ? getAvailability(book, preorder) : null;
+  const offers = book ? editionOffers(book, preorder, digitalFiles) : [];
+  const shown = book ? cardPrice(book, preorder, digitalFiles) : { value: 0, from: false };
+  const price = shown.value;
+  const physicalOffer = offers.find((o) => o.edition === 'fisico');
+  const chapters = book ? filesFor(book.id, 'audiolivro') : [];
 
   useSeo({
     title: book ? `${book.title}${author ? ` — ${author.name}` : ''}` : undefined,
@@ -76,12 +84,20 @@ export default function BookPage() {
     ['Autor', author ? <Link key="a" to={`/autores/${author.slug}`} className="underline decoration-line-strong underline-offset-4 hover:text-primary">{author.name}</Link> : '—'],
     ['ISBN', book.isbn ?? '—'],
     ['Páginas', book.pages ?? '—'],
-    ['Formato', book.formats.map((f) => formatLabels[f]).join(', ')],
+    ['Edições', [...(hasPhysical(book) ? book.formats.filter((f) => f !== 'ebook').map((f) => formatLabels[f]) : []), ...offers.filter((o) => o.edition !== 'fisico').map((o) => editionLabels[o.edition])].join(', ') || '—'],
     ['Idioma', book.language],
     ['Género', category ? <Link key="g" to={`/livros?genero=${category.slug}`} className="underline decoration-line-strong underline-offset-4 hover:text-primary">{category.name}</Link> : '—'],
     ['Editora', book.publisher || site.name],
     ['Lançamento', formatDate(book.publicationDate)],
+    ...(book.audiobookPrice !== null
+      ? ([
+          ['Narração', book.audiobookNarrator ?? '—'],
+          ['Duração do audiolivro', formatDuration(book.audiobookMinutes)],
+        ] as [string, React.ReactNode][])
+      : []),
   ];
+  // Completa a grelha para não ficarem buracos (2 colunas no telemóvel, 4 no computador).
+  const fillers = (4 - (details.length % 4)) % 4;
 
   return (
     <>
@@ -123,29 +139,53 @@ export default function BookPage() {
               </p>
             )}
 
-            <div className="mt-8 max-w-md">
-              <Price value={price} previous={price < book.price ? book.price : book.compareAtPrice} size="lg" />
+            <div className="mt-8 max-w-xl">
+              <div className="flex flex-wrap items-baseline gap-2">
+                {shown.from && <span className="t-small text-muted">desde</span>}
+                <Price value={price} previous={physicalOffer && price < book.price ? book.price : physicalOffer ? book.compareAtPrice : null} size="lg" />
+              </div>
               <p className="mt-1 t-small text-muted">
-                {availability === 'disponivel'
+                {physicalOffer && !physicalOffer.isPreorder
                   ? book.stock <= 5
-                    ? `Últimos ${book.stock} exemplares · envio em até 2 dias úteis`
-                    : 'Em stock · envio em até 2 dias úteis'
-                  : availability === 'esgotado'
-                    ? 'Esgotado de momento'
-                    : `Lançamento a ${formatDate(book.publicationDate)}`}
+                    ? `Livro físico: últimos ${book.stock} exemplares · envio em até 2 dias úteis`
+                    : 'Livro físico em stock · envio em até 2 dias úteis'
+                  : offers.length
+                    ? 'Disponível em formato digital'
+                    : availability === 'esgotado'
+                      ? 'Esgotado de momento'
+                      : `Lançamento a ${formatDate(book.publicationDate)}`}
               </p>
-              <div className="mt-6">
-                {availability === 'pre_venda' || availability === 'brevemente' ? (
-                  <ButtonLink to={`/pre-venda/${book.slug}`} size="lg" className="w-full sm:w-auto">
-                    {availability === 'pre_venda' ? 'Reservar na pré-venda' : 'Ver pré-venda'} <ArrowRight size={16} aria-hidden="true" />
+              <div className="mt-6 space-y-4">
+                {(physicalAvailability === 'pre_venda' || physicalAvailability === 'brevemente') && preorder && (
+                  <ButtonLink to={`/pre-venda/${book.slug}`} size="lg" variant={offers.some((o) => o.edition !== 'fisico') ? 'secondary' : 'primary'} className="w-full sm:w-auto">
+                    {physicalAvailability === 'pre_venda' ? 'Reservar o livro físico na pré-venda' : 'Ver pré-venda'} <ArrowRight size={16} aria-hidden="true" />
                   </ButtonLink>
-                ) : availability === 'disponivel' ? (
-                  <BuyBox book={book} ctaLabel="Comprar agora" />
+                )}
+                {offers.some((o) => !o.isPreorder) ? (
+                  <BuyBox book={book} offers={offers.filter((o) => !o.isPreorder)} ctaLabel="Comprar agora" owned={ownedFor(book.id)} />
                 ) : (
-                  <p className="rounded-md bg-surface-alt px-4 py-3 t-small text-fg/85">Subscreva a newsletter para saber quando voltar a estar disponível.</p>
+                  !preorder && <p className="rounded-md bg-surface-alt px-4 py-3 t-small text-fg/85">Subscreva a newsletter para saber quando voltar a estar disponível.</p>
                 )}
               </div>
             </div>
+
+            {chapters.length > 0 && (
+              <section className="mt-12 border-t border-line pt-10" aria-labelledby="audiolivro">
+                <h2 id="audiolivro" className="t-h3">Audiolivro</h2>
+                <p className="mt-2 t-small text-muted">
+                  {book.audiobookNarrator && <>Narração de {book.audiobookNarrator} · </>}
+                  {formatDuration(book.audiobookMinutes)} · {chapters.length} {chapters.length === 1 ? 'faixa' : 'faixas'}
+                </p>
+                <ol className="mt-4 divide-y divide-line rounded-card border border-line bg-surface">
+                  {chapters.map((c, i) => (
+                    <li key={c.id} className="flex items-center gap-3 px-4 py-3 t-small">
+                      <span className="w-6 tabular-nums text-muted">{i + 1}</span>
+                      <span className="text-fg">{c.title}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
 
             <section className="mt-12 border-t border-line pt-10" aria-labelledby="sinopse">
               <h2 id="sinopse" className="t-h3">Sinopse</h2>
@@ -163,6 +203,9 @@ export default function BookPage() {
                     <dt className="t-caption">{k}</dt>
                     <dd className="mt-1 break-words t-small font-medium text-fg">{v}</dd>
                   </div>
+                ))}
+                {Array.from({ length: fillers }, (_, i) => (
+                  <div key={`vazio-${i}`} className="hidden bg-surface md:block" aria-hidden="true" />
                 ))}
               </dl>
             </section>

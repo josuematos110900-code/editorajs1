@@ -101,6 +101,20 @@ export const deliveryMethods: DeliveryMethod[] = [
   },
 ];
 
+/** Entrega das edições digitais: sem portes nem morada. Não aparece na escolha de entrega. */
+export const digitalDelivery: DeliveryMethod = {
+  id: 'digital',
+  label: 'Entrega digital',
+  description: 'Acesso na sua biblioteca assim que o pagamento for confirmado.',
+  cost: 0,
+  freeFrom: null,
+  requiresAddress: false,
+};
+
+export function findDeliveryMethod(id: string): DeliveryMethod | undefined {
+  return id === digitalDelivery.id ? digitalDelivery : deliveryMethods.find((m) => m.id === id);
+}
+
 export interface PaymentMethodConfig {
   id: 'referencia' | 'transferencia' | 'gateway';
   label: string;

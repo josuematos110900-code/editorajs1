@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, X } from 'lucide-react';
 import { z } from 'zod';
 import { bookToInput } from '../../components/admin/bookInput';
+import { DigitalFilesManager } from '../../components/admin/DigitalFilesManager';
 import { ImageUpload } from '../../components/admin/ImageUpload';
 import { BookCover } from '../../components/book/BookCover';
 import { AdminPageHeader } from '../../components/layout/AdminLayout';
@@ -18,18 +19,26 @@ import { useAsync } from '../../lib/useAsync';
 import { fieldErrors } from '../../lib/validation';
 import type { BookFormat } from '../../types';
 
-const intString = (msg: string) => z.string().regex(/^\d+$/, msg);
-
 const schema = z.object({
   title: z.string().trim().min(1, 'Indique o título.'),
   slug: z.string().regex(/^[a-z0-9-]+$/, 'Só minúsculas, números e hífens.'),
   authorId: z.string().min(1, 'Escolha o autor.'),
   synopsis: z.string().trim().min(10, 'Escreva uma sinopse (mín. 10 caracteres).'),
-  price: intString('Indique o preço (inteiro, em Kz).'),
-  stock: intString('Indique o stock (inteiro).'),
+  price: z.string().regex(/^\d*$/, 'Indique o preço (inteiro, em Kz).'),
+  stock: z.string().regex(/^\d*$/, 'Indique o stock (inteiro).'),
   pages: z.string().regex(/^\d*$/, 'Número inteiro.'),
   compareAtPrice: z.string().regex(/^\d*$/, 'Número inteiro.'),
-  formats: z.array(z.string()).min(1, 'Escolha pelo menos um formato.'),
+  ebookPrice: z.string().regex(/^\d*$/, 'Número inteiro (Kz).'),
+  audiobookPrice: z.string().regex(/^\d*$/, 'Número inteiro (Kz).'),
+  audiobookMinutes: z.string().regex(/^\d*$/, 'Número inteiro de minutos.'),
+  formats: z.array(z.string()),
+}).superRefine((v, ctx) => {
+  const physical = v.formats.some((f) => f === 'capa_mole' || f === 'capa_dura');
+  if (!physical && !v.ebookPrice && !v.audiobookPrice) {
+    ctx.addIssue({ code: 'custom', message: 'Escolha a edição impressa ou indique o preço do e-book ou do audiolivro.', path: ['formats'] });
+  }
+  if (physical && !v.price) ctx.addIssue({ code: 'custom', message: 'Indique o preço do livro físico.', path: ['price'] });
+  if (physical && !v.stock) ctx.addIssue({ code: 'custom', message: 'Indique o stock.', path: ['stock'] });
 });
 
 const empty: BookInput = {
@@ -49,6 +58,10 @@ const empty: BookInput = {
   price: 0,
   compareAtPrice: null,
   stock: 0,
+  ebookPrice: null,
+  audiobookPrice: null,
+  audiobookNarrator: null,
+  audiobookMinutes: null,
   coverUrl: null,
   gallery: [],
   coverColor: '#2A2723',
@@ -60,9 +73,9 @@ export default function AdminBookForm() {
   const isNew = !id || id === 'novo';
   const navigate = useNavigate();
   const { reload: reloadPublic } = useCatalog();
-  const { data, loading, error } = useAsync(() => api.admin.getCatalog(), []);
+  const { data, loading, error, reload } = useAsync(() => api.admin.getCatalog(), []);
   const [book, setBook] = useState<BookInput>(empty);
-  const [nums, setNums] = useState({ price: '', stock: '0', pages: '', compareAtPrice: '' });
+  const [nums, setNums] = useState({ price: '', stock: '0', pages: '', compareAtPrice: '', ebookPrice: '', audiobookPrice: '', audiobookMinutes: '' });
   const [slugTouched, setSlugTouched] = useState(!isNew);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState('');
@@ -78,6 +91,9 @@ export default function AdminBookForm() {
         stock: String(existing.stock),
         pages: existing.pages?.toString() ?? '',
         compareAtPrice: existing.compareAtPrice?.toString() ?? '',
+        ebookPrice: existing.ebookPrice?.toString() ?? '',
+        audiobookPrice: existing.audiobookPrice?.toString() ?? '',
+        audiobookMinutes: existing.audiobookMinutes?.toString() ?? '',
       });
     }
   }, [data, id, isNew]);
@@ -88,6 +104,7 @@ export default function AdminBookForm() {
 
   const set = <K extends keyof BookInput>(key: K, value: BookInput[K]) => setBook((b) => ({ ...b, [key]: value }));
   const author = data.authors.find((a) => a.id === book.authorId);
+  const hasPhysicalEdition = book.formats.some((f) => f === 'capa_mole' || f === 'capa_dura');
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -105,8 +122,12 @@ export default function AdminBookForm() {
         ...book,
         id: isNew ? undefined : id,
         title: book.title.trim(),
-        price: Number(nums.price),
-        stock: Number(nums.stock),
+        price: Number(nums.price || 0),
+        stock: Number(nums.stock || 0),
+        ebookPrice: nums.ebookPrice ? Number(nums.ebookPrice) : null,
+        audiobookPrice: nums.audiobookPrice ? Number(nums.audiobookPrice) : null,
+        audiobookMinutes: nums.audiobookMinutes ? Number(nums.audiobookMinutes) : null,
+        audiobookNarrator: book.audiobookNarrator?.trim() || null,
         pages: nums.pages ? Number(nums.pages) : null,
         compareAtPrice: nums.compareAtPrice ? Number(nums.compareAtPrice) : null,
         isbn: book.isbn?.trim() || null,
@@ -177,9 +198,9 @@ export default function AdminBookForm() {
               <TextField label="Data de publicação / lançamento" type="date" value={book.publicationDate ?? ''} onChange={(e) => set('publicationDate', e.target.value || null)} />
             </div>
             <div>
-              <p className="mb-2 text-sm font-medium text-fg">Formatos</p>
+              <p className="mb-2 text-sm font-medium text-fg">Edição impressa</p>
               <div className="flex flex-wrap gap-5">
-                {(Object.keys(formatLabels) as BookFormat[]).map((f) => (
+                {(['capa_mole', 'capa_dura'] as BookFormat[]).map((f) => (
                   <Checkbox
                     key={f}
                     label={formatLabels[f]}
@@ -188,18 +209,55 @@ export default function AdminBookForm() {
                   />
                 ))}
               </div>
-              {errors.formats && <p className="mt-1 text-sm text-primary" role="alert">{errors.formats}</p>}
+              <p className="mt-1 text-xs text-muted">Deixe ambas por marcar se o livro for só digital.</p>
+              {errors.formats && <p className="mt-1 text-sm text-danger" role="alert">{errors.formats}</p>}
             </div>
           </fieldset>
 
           <fieldset className="space-y-4 rounded-card border border-line bg-surface p-6">
-            <legend className="px-1 font-display text-lg">Preço e stock</legend>
+            <legend className="px-1 font-display text-lg">Livro físico — preço e stock</legend>
             <div className="grid gap-4 sm:grid-cols-3">
-              <TextField label="Preço (Kz)" inputMode="numeric" value={nums.price} onChange={(e) => setNums((n) => ({ ...n, price: e.target.value }))} error={errors.price} required />
+              <TextField label="Preço (Kz)" inputMode="numeric" value={nums.price} onChange={(e) => setNums((n) => ({ ...n, price: e.target.value }))} error={errors.price} required={hasPhysicalEdition} />
               <TextField label="Preço anterior (Kz)" inputMode="numeric" value={nums.compareAtPrice} onChange={(e) => setNums((n) => ({ ...n, compareAtPrice: e.target.value }))} error={errors.compareAtPrice} hint="Aparece riscado." />
-              <TextField label="Stock" inputMode="numeric" value={nums.stock} onChange={(e) => setNums((n) => ({ ...n, stock: e.target.value }))} error={errors.stock} required />
+              <TextField label="Stock" inputMode="numeric" value={nums.stock} onChange={(e) => setNums((n) => ({ ...n, stock: e.target.value }))} error={errors.stock} required={hasPhysicalEdition} />
             </div>
             <p className="text-xs text-muted">Preço especial, datas e limite de pré-venda geridos em «Pré-vendas».</p>
+          </fieldset>
+
+          <fieldset className="space-y-6 rounded-card border border-line bg-surface p-6">
+            <legend className="px-1 font-display text-lg">Edições digitais</legend>
+            <p className="t-small text-muted">
+              Deixe o preço vazio para não vender essa edição. Uma edição digital só aparece à venda depois do lançamento e com pelo menos um ficheiro carregado.
+              Os ficheiros ficam privados: só quem pagou os pode abrir.
+            </p>
+            <div>
+              <h3 className="t-h4">E-book</h3>
+              <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                <TextField label="Preço do e-book (Kz)" inputMode="numeric" value={nums.ebookPrice} onChange={(e) => setNums((n) => ({ ...n, ebookPrice: e.target.value }))} error={errors.ebookPrice} />
+              </div>
+              <div className="mt-4">
+                {book.id || !isNew ? (
+                  <DigitalFilesManager bookId={id!} kind="ebook" files={data.digitalFiles.filter((f) => f.bookId === id && f.kind === 'ebook')} onChanged={() => { reload(); void reloadPublic(); }} />
+                ) : (
+                  <p className="t-small text-muted">Guarde o livro primeiro para carregar os ficheiros.</p>
+                )}
+              </div>
+            </div>
+            <div className="border-t border-line pt-6">
+              <h3 className="t-h4">Audiolivro</h3>
+              <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                <TextField label="Preço do audiolivro (Kz)" inputMode="numeric" value={nums.audiobookPrice} onChange={(e) => setNums((n) => ({ ...n, audiobookPrice: e.target.value }))} error={errors.audiobookPrice} />
+                <TextField label="Narração" value={book.audiobookNarrator ?? ''} onChange={(e) => set('audiobookNarrator', e.target.value)} />
+                <TextField label="Duração (minutos)" inputMode="numeric" value={nums.audiobookMinutes} onChange={(e) => setNums((n) => ({ ...n, audiobookMinutes: e.target.value }))} error={errors.audiobookMinutes} />
+              </div>
+              <div className="mt-4">
+                {book.id || !isNew ? (
+                  <DigitalFilesManager bookId={id!} kind="audiolivro" files={data.digitalFiles.filter((f) => f.bookId === id && f.kind === 'audiolivro')} onChanged={() => { reload(); void reloadPublic(); }} />
+                ) : (
+                  <p className="t-small text-muted">Guarde o livro primeiro para carregar os ficheiros.</p>
+                )}
+              </div>
+            </div>
           </fieldset>
 
           <fieldset className="space-y-4 rounded-card border border-line bg-surface p-6">

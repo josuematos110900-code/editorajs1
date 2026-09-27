@@ -1,5 +1,6 @@
-import type { Author, Book, BookFormat, Preorder } from '../types';
-import { getAvailability, effectivePrice, type Availability } from './preorder';
+import type { Author, Book, DigitalFile, Preorder } from '../types';
+import { cardAvailability, cardPrice, digitalAvailable } from './editions';
+import type { Availability } from './preorder';
 
 export type SortKey = 'recentes' | 'antigos' | 'titulo' | 'preco_asc' | 'preco_desc';
 
@@ -8,10 +9,20 @@ export interface CatalogFilters {
   genero: string; // slug da categoria ou ''
   autor: string; // slug do autor ou ''
   disponibilidade: Availability | '';
-  formato: BookFormat | '';
+  formato: CatalogFormat | '';
   preco: PriceRange | '';
   ordem: SortKey;
 }
+
+/** Formatos pesquisáveis: impressos (pela ficha) e digitais (à venda). */
+export type CatalogFormat = 'capa_mole' | 'capa_dura' | 'ebook' | 'audiolivro';
+
+export const catalogFormatLabels: Record<CatalogFormat, string> = {
+  capa_mole: 'Capa mole',
+  capa_dura: 'Capa dura',
+  ebook: 'E-book',
+  audiolivro: 'Audiolivro',
+};
 
 export type PriceRange = 'ate-8000' | '8000-12000' | '12000-mais';
 
@@ -29,8 +40,9 @@ function normalize(s: string) {
 export function filterBooks(
   books: Book[],
   filters: CatalogFilters,
-  ctx: { authors: Author[]; categorySlugToId: Map<string, string>; preorderFor: (id: string) => Preorder | undefined; now?: Date },
+  ctx: { authors: Author[]; categorySlugToId: Map<string, string>; preorderFor: (id: string) => Preorder | undefined; digitalFiles?: DigitalFile[]; now?: Date },
 ): Book[] {
+  const files = ctx.digitalFiles ?? [];
   const q = normalize(filters.q.trim());
   const authorName = new Map(ctx.authors.map((a) => [a.id, a.name]));
   const authorId = filters.autor ? ctx.authors.find((a) => a.slug === filters.autor)?.id : undefined;
@@ -39,11 +51,13 @@ export function filterBooks(
   const result = books.filter((b) => {
     if (filters.autor && b.authorId !== authorId) return false;
     if (filters.genero && b.categoryId !== categoryId) return false;
-    if (filters.disponibilidade && getAvailability(b, ctx.preorderFor(b.id), ctx.now) !== filters.disponibilidade) return false;
-    if (filters.formato && !b.formats.includes(filters.formato)) return false;
+    if (filters.disponibilidade && cardAvailability(b, ctx.preorderFor(b.id), files, ctx.now) !== filters.disponibilidade) return false;
+    if (filters.formato === 'ebook' || filters.formato === 'audiolivro') {
+      if (!digitalAvailable(b, filters.formato, files, ctx.now)) return false;
+    } else if (filters.formato && !b.formats.includes(filters.formato)) return false;
     if (filters.preco) {
       const range = priceRanges[filters.preco];
-      const p = effectivePrice(b, ctx.preorderFor(b.id), ctx.now);
+      const p = cardPrice(b, ctx.preorderFor(b.id), files, ctx.now).value;
       if (!range || p < range.min || p > range.max) return false;
     }
     if (q) {
@@ -54,7 +68,7 @@ export function filterBooks(
   });
 
   const date = (b: Book) => b.publicationDate ?? '9999-12-31';
-  const price = (b: Book) => effectivePrice(b, ctx.preorderFor(b.id), ctx.now);
+  const price = (b: Book) => cardPrice(b, ctx.preorderFor(b.id), files, ctx.now).value;
   const sorters: Record<SortKey, (a: Book, b: Book) => number> = {
     recentes: (a, b) => date(b).localeCompare(date(a)),
     antigos: (a, b) => date(a).localeCompare(date(b)),

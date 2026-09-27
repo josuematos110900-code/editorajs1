@@ -13,10 +13,13 @@ import { formatDate, formatMoney } from '../../lib/format';
 import { useSeo } from '../../lib/seo';
 import { useAsync } from '../../lib/useAsync';
 import { customerSchema, fieldErrors } from '../../lib/validation';
+import { DigitalLibrary } from '../../components/DigitalLibrary';
+import { useLibrary } from '../../lib/useLibrary';
 import type { Order } from '../../types';
 
 const tabs = [
   { id: 'encomendas', label: 'Encomendas' },
+  { id: 'biblioteca', label: 'Biblioteca' },
   { id: 'pre-vendas', label: 'Pré-vendas' },
   { id: 'dados', label: 'Dados pessoais' },
 ] as const;
@@ -62,6 +65,8 @@ export default function Account() {
       <div className="mt-8" role="tabpanel">
         {tab === 'dados' ? (
           <ProfileForm />
+        ) : tab === 'biblioteca' ? (
+          <LibraryTab />
         ) : loading ? (
           <Spinner />
         ) : error ? (
@@ -154,4 +159,11 @@ function ProfileForm() {
       <Button type="submit" loading={status === 'saving'}>Guardar alterações</Button>
     </form>
   );
+}
+
+function LibraryTab() {
+  const { items, loading, error } = useLibrary();
+  if (loading) return <Spinner />;
+  if (error) return <Notice tone="error">{error}</Notice>;
+  return <DigitalLibrary items={items} />;
 }

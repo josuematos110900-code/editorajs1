@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { useCart } from '../context/CartContext';
 import { useCatalog } from '../context/CatalogContext';
-import type { Book } from '../types';
-import { effectivePrice, getAvailability, maxPurchasable } from './preorder';
+import type { Book, Edition } from '../types';
+import { editionOffers } from './editions';
 
 export interface CartItem {
   book: Book;
+  edition: Edition;
   quantity: number;
   unitPrice: number;
   listPrice: number;
@@ -13,35 +14,32 @@ export interface CartItem {
   max: number;
 }
 
-/** Junta o carrinho (ids + quantidades) ao catálogo atual para obter preços e limites. */
+/** Junta o carrinho (ids + edições + quantidades) ao catálogo atual para obter preços e limites. */
 export function useCartItems() {
   const { lines } = useCart();
-  const { bookById, preorderFor, loading } = useCatalog();
+  const { bookById, preorderFor, digitalFiles, loading } = useCatalog();
 
   return useMemo(() => {
     const items: CartItem[] = [];
-    const unavailable: string[] = [];
+    const unavailable: { bookId: string; edition: Edition }[] = [];
     for (const line of lines) {
       const book = bookById(line.bookId);
-      if (!book) {
-        if (!loading) unavailable.push(line.bookId);
-        continue;
-      }
-      const preorder = preorderFor(book.id);
-      const max = maxPurchasable(book, preorder);
-      if (max === 0) {
-        unavailable.push(line.bookId);
+      const offer = book ? editionOffers(book, preorderFor(book.id), digitalFiles).find((o) => o.edition === line.edition) : undefined;
+      if (!book || !offer) {
+        if (!loading) unavailable.push({ bookId: line.bookId, edition: line.edition });
         continue;
       }
       items.push({
         book,
-        quantity: Math.min(line.quantity, max),
-        unitPrice: effectivePrice(book, preorder),
-        listPrice: book.price,
-        isPreorder: getAvailability(book, preorder) === 'pre_venda',
-        max,
+        edition: line.edition,
+        quantity: Math.min(line.quantity, offer.max),
+        unitPrice: offer.price,
+        listPrice: offer.listPrice,
+        isPreorder: offer.isPreorder,
+        max: offer.max,
       });
     }
-    return { items, unavailable };
-  }, [lines, bookById, preorderFor, loading]);
+    const physical = items.some((i) => i.edition === 'fisico');
+    return { items, unavailable, digitalOnly: items.length > 0 && !physical };
+  }, [lines, bookById, preorderFor, digitalFiles, loading]);
 }

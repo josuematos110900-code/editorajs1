@@ -37,6 +37,23 @@ export interface Author {
 
 export type BookFormat = 'capa_mole' | 'capa_dura' | 'ebook';
 
+/** Edição vendida: o livro físico ou uma das edições digitais. */
+export type Edition = 'fisico' | 'ebook' | 'audiolivro';
+export type DigitalKind = Exclude<Edition, 'fisico'>;
+
+/** Ficheiro de uma edição digital (PDF/EPUB do e-book, ou faixa do audiolivro). */
+export interface DigitalFile {
+  id: string;
+  bookId: string;
+  kind: DigitalKind;
+  title: string;
+  position: number;
+  mimeType: string;
+  sizeBytes: number | null;
+  /** Caminho no armazenamento privado. Só quem comprou consegue obter um link. */
+  storagePath: string;
+}
+
 export interface Book {
   id: string;
   slug: string;
@@ -56,6 +73,12 @@ export interface Book {
   price: number;
   compareAtPrice: number | null;
   stock: number;
+  /** Preço do e-book (null = não há e-book à venda). */
+  ebookPrice: number | null;
+  /** Preço do audiolivro (null = não há audiolivro à venda). */
+  audiobookPrice: number | null;
+  audiobookNarrator: string | null;
+  audiobookMinutes: number | null;
   coverUrl: string | null;
   gallery: string[];
   /** Cor base da capa gerada quando não existe imagem (modo demonstração). */
@@ -102,6 +125,7 @@ export interface OrderItem {
   /** Preço de capa no momento da compra (para mostrar a poupança). */
   listPrice: number;
   isPreorder: boolean;
+  edition: Edition;
 }
 
 export interface Payment {
@@ -140,5 +164,14 @@ export interface NewsletterSubscriber {
 
 export interface CartLine {
   bookId: string;
+  edition: Edition;
   quantity: number;
+}
+
+/** Livro digital comprado, na biblioteca do cliente. */
+export interface LibraryItem {
+  bookId: string;
+  kind: DigitalKind;
+  purchasedAt: string;
+  orderNumber: string;
 }

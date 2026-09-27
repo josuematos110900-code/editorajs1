@@ -7,7 +7,7 @@ const valid = {
   deliveryMethod: 'luanda',
   paymentMethod: 'referencia',
   address: { country: 'Angola', city: 'Luanda', line1: 'Rua Exemplo, 10, Maianga' },
-  items: [{ bookId: 'b1', quantity: 1 }],
+  items: [{ bookId: 'b1', edition: 'fisico' as const, quantity: 1 }],
   acceptTerms: true,
 };
 
@@ -32,9 +32,16 @@ describe('checkoutSchema', () => {
     expect(checkoutSchema.safeParse({ ...valid, paymentMethod: 'bitcoin' }).success).toBe(false);
   });
 
+  it('carrinho só digital usa entrega digital e dispensa morada', () => {
+    const digital = { ...valid, items: [{ bookId: 'b1', edition: 'ebook' as const, quantity: 1 }], address: {} };
+    expect(checkoutSchema.safeParse({ ...digital, deliveryMethod: 'digital' }).success).toBe(true);
+    expect(checkoutSchema.safeParse({ ...digital, deliveryMethod: 'luanda' }).success).toBe(false);
+    expect(checkoutSchema.safeParse({ ...valid, deliveryMethod: 'digital' }).success).toBe(false);
+  });
+
   it('rejeita quantidades inválidas e carrinho vazio', () => {
     expect(checkoutSchema.safeParse({ ...valid, items: [] }).success).toBe(false);
-    expect(checkoutSchema.safeParse({ ...valid, items: [{ bookId: 'b1', quantity: 0 }] }).success).toBe(false);
+    expect(checkoutSchema.safeParse({ ...valid, items: [{ bookId: 'b1', edition: 'fisico', quantity: 0 }] }).success).toBe(false);
   });
 });
 

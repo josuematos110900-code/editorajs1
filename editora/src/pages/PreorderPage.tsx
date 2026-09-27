@@ -12,12 +12,13 @@ import { site } from '../config/site';
 import { useCatalog } from '../context/CatalogContext';
 import { formatDate, formatLabels, formatMoney } from '../lib/format';
 import { getPreorderState, preorderBenefits, remainingUnits } from '../lib/preorder';
+import { editionOffers } from '../lib/editions';
 import { absoluteUrl, useSeo } from '../lib/seo';
 import NotFound from './NotFound';
 
 export default function PreorderPage() {
   const { slug = '' } = useParams();
-  const { loading, bookBySlug, authorById, preorderFor } = useCatalog();
+  const { loading, bookBySlug, authorById, preorderFor, digitalFiles } = useCatalog();
   const book = bookBySlug(slug);
   const preorder = book ? preorderFor(book.id) : undefined;
   const author = book ? authorById(book.authorId) : undefined;
@@ -114,7 +115,7 @@ export default function PreorderPage() {
 
             <div className="mt-6">
               {state === 'aberta' ? (
-                <BuyBox book={book} preorder={preorder} ctaLabel="Reservar livro" />
+                <BuyBox book={book} offers={editionOffers(book, preorder, digitalFiles).filter((o) => o.edition === 'fisico')} ctaLabel="Reservar livro" />
               ) : state === 'em_breve' ? (
                 <p className="rounded-md bg-warning-soft px-4 py-3 t-small text-warning">
                   A pré-venda abre a <strong>{formatDate(preorder.startsAt)}</strong>. Subscreva a newsletter para ser avisado.

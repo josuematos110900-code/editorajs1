@@ -5,7 +5,7 @@ import { LinePricing, lineTotal } from '../../components/checkout/LinePricing';
 import { OrderStatusBadge, OrderTimeline, PaymentStatusText } from '../../components/OrderStatus';
 import { Button, buttonClasses } from '../../components/ui/Button';
 import { Notice, Spinner } from '../../components/ui/Feedback';
-import { bankDetails, deliveryMethods, paymentMethods } from '../../config/site';
+import { bankDetails, findDeliveryMethod, paymentMethods } from '../../config/site';
 import { useCatalog } from '../../context/CatalogContext';
 import { api } from '../../data';
 import { formatDate, formatMoney } from '../../lib/format';
@@ -29,7 +29,7 @@ export default function OrderPage() {
   if (error) return <div className="container-page py-16"><Notice tone="error">{error}</Notice></div>;
   if (!order) return <NotFound />;
 
-  const delivery = deliveryMethods.find((m) => m.id === order.deliveryMethod);
+  const delivery = findDeliveryMethod(order.deliveryMethod);
   const payment = paymentMethods.find((m) => m.id === order.payment.method);
   const justPlaced = openedAt - new Date(order.createdAt).getTime() < 10 * 60_000;
   const paymentParam = params.get('pagamento');
@@ -104,6 +104,12 @@ export default function OrderPage() {
         <OrderStatusBadge status={order.status} />
       </header>
 
+      {order.items.some((i) => i.edition !== 'fisico') && ['pagamento_confirmado', 'em_preparacao', 'enviado', 'entregue'].includes(order.status) && (
+        <Notice tone="success" className="mt-6" title="Os seus livros digitais estão prontos">
+          Abra-os em <Link to="/conta?separador=biblioteca" className="font-semibold underline">A minha conta → Biblioteca</Link>.
+        </Notice>
+      )}
+
       <div className="mt-8 rounded-card border border-line bg-surface p-5 sm:p-6">
         <OrderTimeline status={order.status} />
         {ships.length > 0 && order.status !== 'cancelado' && (
@@ -172,7 +178,7 @@ export default function OrderPage() {
                 <li key={i.id} className="flex justify-between gap-4 py-3 text-sm">
                   <div>
                     {book ? <Link to={`/livros/${book.slug}`} className="font-medium hover:text-primary">{i.title}</Link> : <span className="font-medium">{i.title}</span>}
-                    <LinePricing quantity={i.quantity} unitPrice={i.unitPrice} listPrice={i.listPrice} />
+                    <LinePricing quantity={i.quantity} unitPrice={i.unitPrice} listPrice={i.listPrice} edition={i.edition} />
                   </div>
                   <p className="font-medium">{formatMoney(lineTotal(i))}</p>
                 </li>

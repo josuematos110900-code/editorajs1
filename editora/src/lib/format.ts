@@ -29,4 +29,5 @@ export const formatLabels: Record<string, string> = {
   capa_mole: 'Capa mole',
   capa_dura: 'Capa dura',
   ebook: 'E-book',
+  audiolivro: 'Audiolivro',
 };

@@ -97,6 +97,7 @@ As animações respeitam `prefers-reduced-motion`. As áreas de toque têm pelo 
    - `supabase/migrations/001_editora_schema.sql`, que cria as tabelas, a RLS, as funções de encomenda e pagamento e o bucket `media`
    - `supabase/migrations/002_book_language.sql`, que acrescenta o idioma do livro
    - `supabase/migrations/003_preorder_sold_out_message.sql`, que dá uma mensagem clara quando a pré-venda esgota
+   - `supabase/migrations/004_digital_editions.sql`, que acrescenta e-books e audiolivros (preços, ficheiros privados, biblioteca do cliente)
    - opcionalmente, `supabase/seed.sql` (e, antes de abrir ao público, `supabase/limpar-demonstracao.sql` para o apagar) (dados de demonstração marcados com `is_demo = true`)
 2. Promova a primeira conta da equipa (depois de ela se registar no site):
    ```sql
@@ -147,6 +148,29 @@ Garantias do tratamento de webhooks:
 - Um pagamento com valor diferente do total da encomenda nunca a confirma.
 - Um «recusado» que chegue atrasado nunca desfaz um pagamento já aprovado.
 
+## E-books e audiolivros
+
+Cada livro pode ser vendido em **três edições**: físico, e-book e audiolivro, cada uma com o seu preço. Um livro pode também ser só digital; para isso, deixe por marcar as duas opções de edição impressa.
+
+**No painel (Livros → editar livro → «Edições digitais»):**
+1. Indique o preço do e-book e/ou do audiolivro. Deixe o campo vazio para não vender essa edição.
+2. Carregue os ficheiros:
+   - **E-book:** PDF ou EPUB.
+   - **Audiolivro:** MP3, M4A, AAC, WAV ou OGG. Pode carregar vários ficheiros de uma vez (por exemplo, um por capítulo) e reordená-los.
+3. Uma edição digital só aparece à venda quando tem preço, o livro já foi lançado e existe pelo menos um ficheiro carregado.
+
+**Como funciona para o cliente:**
+- Escolhe a edição na página do livro.
+- Se o carrinho só tiver livros digitais, o checkout não pede morada nem cobra portes (entrega «digital»). Numa encomenda mista, os portes contam só com o livro físico.
+- Quando o pagamento é confirmado, a encomenda digital passa sozinha a «Entregue», e os livros aparecem em **A minha conta → Biblioteca**. Aí o cliente abre ou descarrega o e-book e ouve o audiolivro no site, com passagem automática de faixa.
+- Cada edição digital compra-se uma vez por conta. Se o cliente já a tiver, o site indica que ela já está na biblioteca.
+
+**Segurança:**
+- Os ficheiros ficam no bucket **privado** `digital` do Supabase Storage.
+- Só quem comprou e tem o pagamento confirmado obtém um link, e esse link expira ao fim de 1 hora. Esta regra está nas políticas RLS da base de dados, não só na interface.
+- Um reembolso ou cancelamento retira o acesso automaticamente.
+- Não há DRM: quem descarrega um ficheiro pode partilhá-lo. É a prática habitual das pequenas editoras.
+
 ## Estados da encomenda
 
 `Pendente → Pagamento confirmado → Em preparação → Enviado → Entregue`, com saída possível para `Cancelado` ou `Reembolsado`. As transições permitidas estão definidas em `src/lib/orderStatus.ts` e na função `admin_update_order_status` (é a base de dados que as aplica).
@@ -169,7 +193,7 @@ Garantias do tratamento de webhooks:
 
 ```bash
 npm run lint
-npm test            # 47 testes: pré-venda, preços, estados, validação, filtros, painel, assinatura de webhooks
+npm test            # 59 testes: pré-venda, edições digitais, preços, estados, validação, filtros, painel, webhooks
 npm run build
 ```
 
@@ -187,6 +211,12 @@ Teste de concorrência: 210 compras simultâneas com stock limitado. Corra-o num
 
 ```bash
 PGDATABASE=editora_test bash supabase/tests/20_concorrencia.sh   # cada linha deve terminar em | OK
+```
+
+Cenários das edições digitais, também numa base acabada de criar. Verificam o acesso aos ficheiros só depois do pagamento, a entrega automática, os portes numa encomenda mista e o acesso retirado com um reembolso:
+
+```bash
+psql -d editora_test -At -f supabase/tests/30_digital.sql   # cada linha deve terminar em |t
 ```
 
 ## Limitações conhecidas
