@@ -1,4 +1,6 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -37,6 +39,10 @@ export default defineConfig({
       },
     }),
   ],
+  // editora/ é um projeto independente, com os seus próprios testes e dependências.
+  test: {
+    exclude: [...configDefaults.exclude, 'editora/**'],
+  },
   build: {
     chunkSizeWarningLimit: 700,
     rollupOptions: {
