@@ -96,6 +96,7 @@ As animações respeitam `prefers-reduced-motion`. As áreas de toque têm pelo 
 1. Crie um projeto Supabase e, em **SQL Editor**, execute por esta ordem:
    - `supabase/migrations/001_editora_schema.sql`, que cria as tabelas, a RLS, as funções de encomenda e pagamento e o bucket `media`
    - `supabase/migrations/002_book_language.sql`, que acrescenta o idioma do livro
+   - `supabase/migrations/003_preorder_sold_out_message.sql`, que dá uma mensagem clara quando a pré-venda esgota
    - opcionalmente, `supabase/seed.sql` (dados de demonstração marcados com `is_demo = true`)
 2. Promova a primeira conta da equipa (depois de ela se registar no site):
    ```sql
@@ -168,7 +169,7 @@ Garantias do tratamento de webhooks:
 
 ```bash
 npm run lint
-npm test            # 46 testes: pré-venda, preços, estados, validação, filtros, painel, assinatura de webhooks
+npm test            # 47 testes: pré-venda, preços, estados, validação, filtros, painel, assinatura de webhooks
 npm run build
 ```
 
@@ -177,9 +178,15 @@ Cenários SQL (RLS, encomendas, sobre-reserva, webhooks, permissões e reposiç�
 ```bash
 createdb editora_test
 psql -d editora_test -f supabase/tests/00_supabase_stub.sql      # simula auth/storage/roles do Supabase
-psql -d editora_test -f supabase/migrations/001_editora_schema.sql
+for f in supabase/migrations/00*.sql; do psql -d editora_test -f "$f"; done
 psql -d editora_test -f supabase/seed.sql
 psql -d editora_test -At -f supabase/tests/10_scenarios.sql      # cada linha deve terminar em |t
+```
+
+Teste de concorrência: 210 compras simultâneas com stock limitado. Corra-o numa base acabada de criar, com as migrações e o seed mas sem os cenários acima. O resultado esperado é exatamente 5, 3 e 40 vendas, sem nenhum exemplar vendido a mais:
+
+```bash
+PGDATABASE=editora_test bash supabase/tests/20_concorrencia.sh   # cada linha deve terminar em | OK
 ```
 
 ## Limitações conhecidas

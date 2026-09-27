@@ -44,6 +44,9 @@ export function priceOrder(
       continue;
     }
 
+    if (preorder && getPreorderState(preorder, now) === 'esgotada') {
+      throw new OrderRejected(`A pré-venda de «${book.title}» esgotou — todos os exemplares foram reservados.`);
+    }
     if (getAvailability(book, preorder, now) !== 'disponivel') {
       throw new OrderRejected(`«${book.title}» não está disponível para compra neste momento.`);
     }

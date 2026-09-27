@@ -34,6 +34,11 @@ describe('priceOrder', () => {
     );
   });
 
+  it('explica que a pré-venda esgotou a quem chega depois da última unidade', () => {
+    const full = preorders.map((p) => (p.id === 'pre-rios' ? { ...p, reserved: 150 } : p));
+    expect(() => priceOrder([{ bookId: 'bk-rios', quantity: 1 }], 'luanda', books, full, now)).toThrow(/esgotou/);
+  });
+
   it('recusa livros esgotados, por lançar ou não publicados', () => {
     expect(() => priceOrder([{ bookId: 'bk-provincias', quantity: 1 }], 'luanda', books, preorders, now)).toThrow(OrderRejected);
     expect(() => priceOrder([{ bookId: 'bk-imbondeiro', quantity: 1 }], 'luanda', books, preorders, now)).toThrow(OrderRejected);
