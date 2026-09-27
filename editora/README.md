@@ -97,7 +97,7 @@ As animações respeitam `prefers-reduced-motion`. As áreas de toque têm pelo 
    - `supabase/migrations/001_editora_schema.sql`, que cria as tabelas, a RLS, as funções de encomenda e pagamento e o bucket `media`
    - `supabase/migrations/002_book_language.sql`, que acrescenta o idioma do livro
    - `supabase/migrations/003_preorder_sold_out_message.sql`, que dá uma mensagem clara quando a pré-venda esgota
-   - opcionalmente, `supabase/seed.sql` (dados de demonstração marcados com `is_demo = true`)
+   - opcionalmente, `supabase/seed.sql` (e, antes de abrir ao público, `supabase/limpar-demonstracao.sql` para o apagar) (dados de demonstração marcados com `is_demo = true`)
 2. Promova a primeira conta da equipa (depois de ela se registar no site):
    ```sql
    update public.profiles set role = 'admin' where email = 'equipa@editora.ao';
