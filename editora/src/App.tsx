@@ -9,6 +9,7 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { CatalogProvider } from './context/CatalogContext';
 import { configurationMissing } from './data';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import Home from './pages/Home';
 import NotFound from './pages/NotFound';
 
@@ -41,6 +42,7 @@ export default function App() {
   if (configurationMissing) return <ConfigurationMissing />;
 
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <AuthProvider>
         <CatalogProvider>
@@ -90,6 +92,7 @@ export default function App() {
         </CatalogProvider>
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

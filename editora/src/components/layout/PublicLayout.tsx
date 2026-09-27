@@ -7,7 +7,11 @@ export function PublicLayout() {
   const { pathname } = useLocation();
   // No checkout o rodapé sai: menos distrações no momento da compra.
   const focused = pathname === '/checkout';
-  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  // Chavetas obrigatórias: no Chrome recente window.scrollTo devolve uma
+  // Promise, e um efeito só pode devolver uma função de limpeza.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   return (
     <div className="flex min-h-screen flex-col">
